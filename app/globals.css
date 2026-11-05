@@ -1274,3 +1274,7 @@ a svg {
 .recording-time { font-variant-numeric: tabular-nums; }
 .recorded-clip { display: grid; gap: 12px; }
 .recorded-clip video { width: 100%; border-radius: 12px; background: #0a0c10; }
+
+.air-stage:has(canvas[data-phase]:not([data-phase="idle"])) .air-placeholder {
+  visibility: hidden;
+}

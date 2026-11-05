@@ -239,6 +239,13 @@ export default function AirWriting() {
             if (!pausedRef.current && !manualRef.current) {
               if (effectRef.current === "energy")
                 magic.current?.updateHands(result.landmarks, time);
+              else if (effectRef.current === "portal")
+                magic.current?.updatePortalHand(
+                  result.landmarks.length === 1
+                    ? result.landmarks[0]
+                    : undefined,
+                  time,
+                );
               else if (effectRef.current === "fire")
                 fire.current?.update(
                   result.landmarks.length === 1
@@ -629,10 +636,11 @@ export default function AirWriting() {
             <>
               <h3>Draw a doorway to somewhere else</h3>
               <p className="air-note">
-                Pinch and draw one closed circle, then release to open a portal
-                at that spot. Mouse / touch mode also works. A round loop
-                becomes a portal; other strokes remain as ink. Portals fade
-                after seven seconds.
+                Hold an open palm, close it into a fist, then thrust toward the
+                camera to open a portal. Or pinch and draw one closed circle,
+                then release to open a portal at that spot. Mouse / touch mode
+                also works. A round loop becomes a portal; other strokes remain
+                as ink. Portals fade after seven seconds.
               </p>
               <button
                 className="button"
@@ -659,13 +667,14 @@ export default function AirWriting() {
             </>
           ) : (
             <>
-              <h3>Open to charge. Close to launch.</h3>
+              <h3>Charge. Close. Thrust to launch.</h3>
               <p className="air-note">
                 Open your hand briefly to build a flame, then close all four
-                fingers into a fist to release a fireball. It rushes toward you
-                and bursts across the whole screen with rolling fire, smoke and
-                embers. Pinch to write as before. Effects stay out of saved
-                drawings.
+                fingers into a fist and push toward the camera to release a
+                fireball. Keep your fist visible and facing the camera; closing
+                alone will not launch. It rushes toward you and bursts across
+                the whole screen with rolling fire, smoke and embers. Pinch to
+                write as before. Effects stay out of saved drawings.
               </p>
               <button
                 className="button"

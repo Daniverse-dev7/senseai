@@ -1,9 +1,11 @@
 # Next steps
 
+Latest change: cinematic texture layers and open → fist → forward-thrust release for fire and portals. Verify real webcam thresholds across lighting, skin tones, hand sizes and phone cameras; no physical-camera validation is claimed.
+
 All three milestones are implemented: two-hand energy, circle-to-portal drawing, and local video recording. After Vercel deploys main, verify physical two-hand gestures, circle drawing and a downloaded camera/effects clip on desktop and mobile. The cloud browser tests use real rendering/encoding but cannot validate physical hand tracking.
 
 
-Test https://senseai-pi.vercel.app/air-writing after the latest main deployment. Open your hand briefly to charge; close all four fingers into a fist to launch a fireball and full-screen burst. Verify tracking loss or a writing pinch does not launch, Stop clears effects, and PNG exports only ink. The Preview full-screen burst button can demonstrate the animation without camera access.
+Test https://senseai-pi.vercel.app/air-writing after the latest main deployment. Open your hand briefly to charge; close all four fingers into a fist, then promptly thrust toward the camera to launch a fireball and full-screen burst. Verify tracking loss or a writing pinch does not launch, Stop clears effects, and PNG exports only ink. The Preview full-screen burst button can demonstrate the animation without camera access.
 
 **Latest feature:** Air writing is implemented at `/air-writing`. After Vercel finishes deploying the new main commit, test one-hand tracking, pinch/release between strokes, pause, clear, undo and saved PNG on a physical webcam. Hand-model inference remains unverified here because the cloud blocks its official download host. The user supplied https://senseai-pi.vercel.app/studio; this cloud currently blocks that domain, so live deployment validation remains pending.
 

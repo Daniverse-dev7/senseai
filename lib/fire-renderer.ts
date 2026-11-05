@@ -1,3 +1,4 @@
+import { plasmaTexture } from "./plasma-texture";
 import { ScreenBurst } from "./screen-burst";
 import { FireGesture } from "./fire-gesture";
 import type { Point } from "./air-writing";
@@ -16,6 +17,8 @@ type Shot = { from: Point; to: Point; age: number };
 /** A bounded, local Canvas2D particle effect. Never draws onto the export canvas. */
 export class FireRenderer {
   private ctx: CanvasRenderingContext2D;
+  private core = plasmaTexture("fire");
+  private charge = 0;
   private screen: ScreenBurst;
   private escape = (event: KeyboardEvent) => {
     if (event.key === "Escape") this.reset();
@@ -122,6 +125,7 @@ export class FireRenderer {
   }
   reset() {
     this.gesture.reset();
+    this.charge = 0;
     this.particles = [];
     this.palm = null;
     this.shot = null;
@@ -206,8 +210,20 @@ export class FireRenderer {
       const x = this.palm.x * 960,
         y = this.palm.y * 540 - 12;
       ctx.globalCompositeOperation = "lighter";
-      this.glow(x, y - 12, 85, 0.4);
-      if (!reduced) this.emit(x, y, Math.max(1, Math.round(dt * 130)));
+      this.charge = Math.min(1, this.charge + dt * 0.65);
+      this.glow(x, y - 12, 85 + this.charge * 65, 0.4);
+      ctx.save();
+      ctx.translate(x, y - 24);
+      ctx.rotate(reduced ? 0 : time * 0.0005);
+      const radius = 28 + this.charge * 28;
+      ctx.drawImage(this.core, -radius, -radius, radius * 2, radius * 2);
+      ctx.restore();
+      if (!reduced)
+        this.emit(
+          x,
+          y,
+          Math.max(1, Math.round(dt * (130 + this.charge * 100))),
+        );
       else this.glow(x, y - 22, 48, 0.7);
     }
     if (this.shot) {
@@ -224,6 +240,12 @@ export class FireRenderer {
       if (!reduced) {
         this.emit(x, y, Math.ceil(dt * 220));
         this.glow(x, y, 25 + t * t * 110, 0.65);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(time * 0.003);
+        const radius = 22 + t * t * 130;
+        ctx.drawImage(this.core, -radius, -radius, radius * 2, radius * 2);
+        ctx.restore();
       }
       if (t >= 1) {
         this.burst = { at: shot.to, age: 0 };

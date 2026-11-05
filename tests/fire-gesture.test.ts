@@ -14,6 +14,12 @@ function pose(closed = false) {
   }
   return p;
 }
+function thrust(scale = 1.4) {
+  return pose(true).map((p) => ({
+    x: 0.5 + (p.x - 0.5) * scale,
+    y: 0.7 + (p.y - 0.7) * scale,
+  }));
+}
 function charge(g: FireGesture, start = 0) {
   for (let t = start; t <= start + 240; t += 40) g.update(pose(), t);
 }
@@ -29,18 +35,18 @@ test("fist classifier rejects open, pointing and invalid hands", () => {
   bad[8].x = NaN;
   assert.equal(closedFist(bad), false);
 });
-test("held open palm followed by held fist launches exactly once", () => {
+test("closed fist followed by a sustained forward thrust launches once", () => {
   const g = new FireGesture();
   charge(g);
   assert.equal(g.update(pose(true), 280).launch, null);
-  assert.equal(g.update(pose(true), 320).launch, null);
-  assert.ok(g.update(pose(true), 360).launch);
+  assert.equal(g.update(thrust(), 320).launch, null);
+  assert.ok(g.update(thrust(), 380).launch);
   for (let t = 400; t < 1000; t += 40)
     assert.equal(g.update(pose(true), t).launch, null);
   charge(g, 1000);
   g.update(pose(true), 1280);
-  g.update(pose(true), 1320);
-  assert.ok(g.update(pose(true), 1360).launch);
+  g.update(thrust(), 1320);
+  assert.ok(g.update(thrust(), 1380).launch);
 });
 test("tracking loss, long frame gaps and brief open gestures never launch", () => {
   for (const variant of ["loss", "gap", "brief"]) {
@@ -65,5 +71,22 @@ test("writing pinch and reset disarm a charged flame", () => {
     }
     for (let t = 280; t < 500; t += 40)
       assert.equal(g.update(pose(true), t).launch, null);
+  }
+});
+
+test("closing alone, sideways movement and brief size spikes do not release", () => {
+  for (const kind of ["still", "sideways", "spike"]) {
+    const g = new FireGesture();
+    charge(g);
+    g.update(pose(true), 280);
+    for (let t = 320; t < 1100; t += 40) {
+      const p =
+        kind === "sideways"
+          ? thrust().map((p) => ({ ...p, x: p.x + 0.35 }))
+          : kind === "spike" && t === 320
+            ? thrust()
+            : pose(true);
+      assert.equal(g.update(p, t).launch, null);
+    }
   }
 });

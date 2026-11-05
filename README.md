@@ -49,3 +49,9 @@ Open `/air-writing` and choose an interaction:
 - **Record your scene:** start recording, perform gestures or play an animation preview, then stop and download the clip. The video includes the active mirrored camera, writing and effects, with full-screen bursts fitted inside the frame. Clips are silent, at most 30 seconds, up to 1280 pixels wide within a 720p pixel budget. WebM or MP4 depends on browser support. Nothing is uploaded; download before leaving the page. Hiding the tab ends recording. PNG export still contains ink only.
 
 Each interaction has a camera-free preview. Escape clears effects; reduced-motion settings soften animations. Physical hand tracking must still be checked on a real webcam; cloud tests cover gesture geometry, pointer input, rendered animation and real browser video encoding.
+
+### Cinematic gesture release
+
+In Writing + fire or Portal drawing mode, hold an open palm briefly, close all four fingers into a fist, then promptly push the fist toward the camera while keeping it visible. Closing alone no longer launches fire. The tracker uses sustained growth of palm bones in the image as a forward-motion cue; keep the palm facing the camera. Portal mode also retains circle drawing. Two-hand energy retains its two-open-palms push gesture.
+
+Fire now builds a textured hot core while charging, with a growing turbulent projectile. Energy has counter-rotating plasma shells and electric filaments. Portals layer moving nebula textures and spiral filaments over their tunnel, starfield and spark rim. Textures are generated once and reused; reduced-motion preferences remain supported. This is stylized real-time VFX; physical-camera calibration and device performance still require real-world testing.

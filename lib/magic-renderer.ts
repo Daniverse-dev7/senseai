@@ -1,3 +1,5 @@
+import { plasmaTexture } from "./plasma-texture";
+import { FireGesture } from "./fire-gesture";
 import { EnergyGesture, type Orb } from "./energy-gesture";
 import type { Portal } from "./portal";
 import type { Point } from "./air-writing";
@@ -5,6 +7,9 @@ import type { Point } from "./air-writing";
 export class MagicRenderer {
   private ctx: CanvasRenderingContext2D;
   private energy = new EnergyGesture();
+  private portalGesture = new FireGesture();
+  private plasma = plasmaTexture("blue");
+  private nebula = plasmaTexture("nebula");
   private orb: Orb | null = null;
   private portal: { shape: Portal; start: number } | null = null;
   private released: { orb: Orb; start: number } | null = null;
@@ -45,6 +50,20 @@ export class MagicRenderer {
       this.released = { orb: event.release, start: performance.now() };
     this.wake();
   }
+  updatePortalHand(points: Point[] | undefined, time: number) {
+    if (this.disposed) return;
+    const event = this.portalGesture.update(points, time);
+    this.lastSample = performance.now();
+    this.orb = event.palm ? { center: event.palm, radius: 0.07 } : null;
+    if (event.launch)
+      this.openPortal({
+        center: event.launch,
+        radiusX: 0.24,
+        radiusY: 0.426,
+        score: 1,
+      });
+    this.wake();
+  }
   previewEnergy() {
     this.reset();
     this.previewStart = performance.now();
@@ -65,6 +84,7 @@ export class MagicRenderer {
   }
   reset() {
     this.energy.reset();
+    this.portalGesture.reset();
     this.orb = null;
     this.portal = null;
     this.released = null;
@@ -101,6 +121,33 @@ export class MagicRenderer {
     glow.addColorStop(1, "#4020ff00");
     c.fillStyle = glow;
     c.fillRect(-r * 1.8, -r * 1.8, r * 3.6, r * 3.6);
+    // Counter-rotating turbulent shells give the core volume and internal motion.
+    for (let layer = 0; layer < 3; layer++) {
+      c.save();
+      c.rotate(t * (layer % 2 ? -0.22 : 0.16) + layer * 2);
+      c.globalAlpha = alpha * (0.7 - layer * 0.15);
+      const size = r * (1 - layer * 0.16);
+      c.drawImage(this.plasma, -size, -size, size * 2, size * 2);
+      c.restore();
+    }
+    for (let bolt = 0; bolt < 9; bolt++) {
+      const angle = bolt * 2.39996 + t * 0.25;
+      c.beginPath();
+      for (let step = 0; step <= 18; step++) {
+        const rr = r * (0.3 + (step / 18) * 1.1);
+        const a = angle + Math.sin(step * 2.3 + t * 9 + bolt) * 0.055;
+        const px = Math.cos(a) * rr,
+          py = Math.sin(a) * rr;
+        if (!step) c.moveTo(px, py);
+        else c.lineTo(px, py);
+      }
+      c.strokeStyle = "#b9f5ffb0";
+      c.lineWidth = 1.3;
+      c.shadowColor = "#4e9dff";
+      c.shadowBlur = 7;
+      c.stroke();
+    }
+    c.shadowBlur = 0;
     for (let j = 0; j < 5; j++) {
       c.save();
       c.rotate(t * 0.35 + (j * Math.PI) / 5);
@@ -163,6 +210,30 @@ export class MagicRenderer {
     voidGlow.addColorStop(1, "#ff762a");
     c.fillStyle = voidGlow;
     c.fillRect(-1, -1, 2, 2);
+    for (let layer = 0; layer < 5; layer++) {
+      c.save();
+      c.rotate(t * (0.08 + layer * 0.025) + layer);
+      const scale = 1.5 - layer * 0.22;
+      c.globalCompositeOperation = "screen";
+      c.globalAlpha = fade * 0.45;
+      c.drawImage(this.nebula, -scale, -scale, scale * 2, scale * 2);
+      c.restore();
+    }
+    // Spiral filaments converge toward an offset vanishing point.
+    for (let arm = 0; arm < 7; arm++) {
+      c.beginPath();
+      for (let step = 0; step < 90; step++) {
+        const radius = step / 90;
+        const a = (arm * Math.PI * 2) / 7 + radius * 4 - t * 0.45;
+        const px = Math.cos(a) * radius + (1 - radius) * 0.12;
+        const py = Math.sin(a) * radius - (1 - radius) * 0.1;
+        if (!step) c.moveTo(px, py);
+        else c.lineTo(px, py);
+      }
+      c.strokeStyle = "#a888ff55";
+      c.lineWidth = 0.015;
+      c.stroke();
+    }
     for (let j = 0; j < 15; j++) {
       const z = (j / 15 + t * 0.13) % 1,
         angle = t * 0.28 + j * 0.7;
