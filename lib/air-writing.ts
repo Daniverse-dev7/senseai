@@ -5,6 +5,7 @@ const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 export function trackPen(
   landmarks: Point[] | undefined,
   previous: Pen | null,
+  stabilization = 0.6,
 ): Pen | null {
   if (
     !landmarks ||
@@ -21,12 +22,17 @@ export function trackPen(
     y: Math.max(0, Math.min(1, landmarks[8].y)),
     down,
   };
+  const speed = previous ? distance(previous, next) : 0;
+  const blend = Math.max(
+    0.18,
+    Math.min(0.9, 1 - stabilization * 0.8 + speed * 5),
+  );
   // Smooth small jitter; never connect a jump or a newly raised/lowered pen.
   return previous && down && previous.down && distance(previous, next) < 0.18
     ? {
         ...next,
-        x: previous.x + (next.x - previous.x) * 0.45,
-        y: previous.y + (next.y - previous.y) * 0.45,
+        x: previous.x + (next.x - previous.x) * blend,
+        y: previous.y + (next.y - previous.y) * blend,
       }
     : next;
 }

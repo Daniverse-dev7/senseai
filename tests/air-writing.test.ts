@@ -74,3 +74,13 @@ test("open palm detection follows hand rotation", () => {
   const rotated = palmFixture().map((p) => ({ x: p.y, y: 1 - p.x }));
   assert.ok(openPalm(rotated));
 });
+
+test("stabilization reduces small jitter while faster strokes catch up", () => {
+  const p: Pen = { x: 0.69, y: 0.3, down: true };
+  const strong = trackPen(hand(0.05), p, 1)!,
+    light = trackPen(hand(0.05), p, 0)!;
+  assert.ok(strong.x < light.x);
+  assert.ok(strong.x >= p.x);
+  const fast = trackPen(hand(0.05, 0.22), p, 1)!;
+  assert.ok(fast.x > strong.x);
+});

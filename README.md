@@ -22,13 +22,15 @@ Models and OCR language assets download on first use. No camera frames are uploa
 
 Open **Air Writing** from the studio or **Try air writing** on the landing page. Start hand tracking, keep one hand well lit, and pinch thumb/index together while moving your index fingertip to draw. Release your pinch between strokes. Pause, undo, clear, change pen color/width, or save a PNG containing only your writing. Mouse/touch mode is an optional fallback. This draws ink; it does not convert handwriting to typed text. The first use downloads MediaPipe WASM from cdn.jsdelivr.net and its hand model from storage.googleapis.com.
 
-Open your hand briefly to charge a particle flame, then close all four fingers into a fist to launch a fireball across the camera view. It leaves an ember trail and bursts into sparks and a glowing ring. Pinching still draws. **Preview fireball effect** plays the actual animation without a camera; it does not simulate hand recognition. Reduced-motion settings soften the effect, and exports contain only your writing.
+Open your hand briefly to charge a particle flame, then close all four fingers into a fist to launch a fireball across the camera view. It leaves an ember trail, then expands across the entire browser viewport with textured fire clouds, cooling smoke, radial sparks and a shockwave. Escape dismisses the effect immediately. Pinching still draws. **Preview full-screen burst** plays the actual animation without a camera; it does not simulate hand recognition. Reduced-motion settings soften the effect, and exports contain only your writing.
 
-![Fireball effect preview](docs/fireball-preview.png)
+![Full-screen fire preview](docs/fullscreen-fire-preview.png)
+
+Drawing quality includes quadratic curves, speed-adaptive stabilization, undo/redo, camera visibility controls and a focus view. PNG exports default to 1920×1080. Camera startup requests up to 1080p/30fps; the displayed dimensions show what your device actually supplies. The camera preview and export aspect ratio adapt to its actual dimensions.
 
 ## Checks
 
-`npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. `npm start` serves the production build. Nine unit tests cover evidence-based responses and localization. Eleven Chromium tests cover UI, generated-media camera lifecycle, permission errors, real OCR, and speech controls/fallbacks. Run `npm run test:browser` while a production server is running; install a browser first with `npx playwright install chromium` if system Chromium is unavailable. See PROJECT_STATUS.md for exact evidence and unverified hardware/model checks.
+`npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. `npm start` serves the production build. Seventeen unit tests cover evidence-based responses and localization. Fifteen Chromium tests cover UI, generated-media camera lifecycle, permission errors, real OCR, and speech controls/fallbacks. Run `npm run test:browser` while a production server is running; install a browser first with `npx playwright install chromium` if system Chromium is unavailable. See PROJECT_STATUS.md for exact evidence and unverified hardware/model checks.
 
 ## Deployment
 

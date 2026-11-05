@@ -1,3 +1,4 @@
+import { ScreenBurst } from "./screen-burst";
 import { FireGesture } from "./fire-gesture";
 import type { Point } from "./air-writing";
 type Particle = {
@@ -15,6 +16,10 @@ type Shot = { from: Point; to: Point; age: number };
 /** A bounded, local Canvas2D particle effect. Never draws onto the export canvas. */
 export class FireRenderer {
   private ctx: CanvasRenderingContext2D;
+  private screen: ScreenBurst;
+  private escape = (event: KeyboardEvent) => {
+    if (event.key === "Escape") this.reset();
+  };
   private gesture = new FireGesture();
   private particles: Particle[] = [];
   private palm: Point | null = null;
@@ -30,35 +35,77 @@ export class FireRenderer {
   private hidden = () => {
     if (document.hidden) this.reset();
   };
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(
+    private canvas: HTMLCanvasElement,
+    screenCanvas: HTMLCanvasElement,
+  ) {
     this.ctx = canvas.getContext("2d")!;
     this.sprites = { fire: this.sprite(false), smoke: this.sprite(true) };
+    this.screen = new ScreenBurst(
+      screenCanvas,
+      this.sprites.fire,
+      this.sprites.smoke,
+    );
+    document.addEventListener("keydown", this.escape);
     document.addEventListener("visibilitychange", this.hidden);
     canvas.dataset.phase = "idle";
   }
   private sprite(smoke: boolean) {
     const c = document.createElement("canvas");
-    c.width = c.height = 96;
-    const x = c.getContext("2d")!;
-    const g = x.createRadialGradient(48, 48, 0, 48, 48, 48);
-    for (const [stop, color] of (smoke
-      ? [
-          [0, "rgba(65,55,49,.28)"],
-          [0.5, "rgba(43,38,36,.18)"],
-          [1, "rgba(30,25,20,0)"],
-        ]
-      : [
-          [0, "rgba(255,255,221,1)"],
-          [0.14, "rgba(255,235,125,.95)"],
-          [0.35, "rgba(255,157,22,.8)"],
-          [0.64, "rgba(236,53,8,.36)"],
-          [1, "rgba(120,15,0,0)"],
-        ]) as [number, string][])
-      g.addColorStop(stop, color);
-    x.fillStyle = g;
-    x.fillRect(0, 0, 96, 96);
+    const size = 192;
+    c.width = c.height = size;
+    const ctx = c.getContext("2d")!;
+    const image = ctx.createImageData(size, size);
+    const clamp = (n: number) => Math.max(0, Math.min(1, n));
+    const hash = (x: number, y: number) => {
+      const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+      return n - Math.floor(n);
+    };
+    const noise = (x: number, y: number) => {
+      const ix = Math.floor(x),
+        iy = Math.floor(y),
+        fx = x - ix,
+        fy = y - iy,
+        u = fx * fx * (3 - 2 * fx),
+        v = fy * fy * (3 - 2 * fy);
+      return (
+        (hash(ix, iy) * (1 - u) + hash(ix + 1, iy) * u) * (1 - v) +
+        (hash(ix, iy + 1) * (1 - u) + hash(ix + 1, iy + 1) * u) * v
+      );
+    };
+    for (let y = 0; y < size; y++)
+      for (let x = 0; x < size; x++) {
+        const nx = x / size,
+          ny = y / size,
+          dx = (nx - 0.5) * 2,
+          dy = (ny - 0.5) * 2;
+        const turbulence =
+          noise(nx * 5, ny * 5) * 0.55 +
+          noise(nx * 11 + 3, ny * 11) * 0.3 +
+          noise(nx * 25, ny * 25 + 7) * 0.15;
+        const radius = Math.hypot(dx, dy),
+          field = 0.88 - radius + (turbulence - 0.5) * 0.62;
+        const coverage = clamp(field / 0.22);
+        const heat = clamp(field * 1.25 + (turbulence - 0.4) * 0.65);
+        const i = (y * size + x) * 4;
+        image.data[i] = smoke ? 25 + turbulence * 40 : 160 + heat * 95;
+        image.data[i + 1] = smoke
+          ? 22 + turbulence * 29
+          : 25 + Math.pow(heat, 0.9) * 230;
+        image.data[i + 2] = smoke
+          ? 20 + turbulence * 22
+          : Math.pow(heat, 3) * 210;
+        image.data[i + 3] =
+          coverage *
+          coverage *
+          (3 - 2 * coverage) *
+          (smoke ? 0.38 : 0.94) *
+          255;
+      }
+    ctx.putImageData(image, 0, 0);
     return c;
   }
+
   update(points: Point[] | undefined, time: number) {
     if (this.disposed || this.previewAt !== null) return;
     const event = this.gesture.update(points, time);
@@ -85,11 +132,13 @@ export class FireRenderer {
     this.raf = null;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.canvas.dataset.phase = "idle";
+    this.screen.clear();
   }
   destroy() {
     this.reset();
     this.disposed = true;
     document.removeEventListener("visibilitychange", this.hidden);
+    document.removeEventListener("keydown", this.escape);
   }
   private wake() {
     if (this.raf === null && !this.disposed)
@@ -100,7 +149,7 @@ export class FireRenderer {
     this.palm = null;
     this.shot = {
       from: { x: origin.x * 960, y: origin.y * 540 - 20 },
-      to: { x: origin.x < 0.5 ? 700 : 260, y: 155 },
+      to: { x: 480, y: 240 },
       age: 0,
     };
   }
@@ -145,6 +194,7 @@ export class FireRenderer {
     const dt = Math.min((time - (this.last || time - 16)) / 1000, 0.035);
     this.last = time;
     const reduced = this.motion.matches;
+    if (reduced) this.particles = [];
     const ctx = this.ctx;
     ctx.clearRect(0, 0, 960, 540);
     if (this.previewAt !== null && time - this.previewAt >= 850) {
@@ -173,40 +223,22 @@ export class FireRenderer {
       ctx.globalCompositeOperation = "lighter";
       if (!reduced) {
         this.emit(x, y, Math.ceil(dt * 220));
-        this.glow(x, y, 30 + t * 30, 0.8);
+        this.glow(x, y, 25 + t * t * 110, 0.65);
       }
       if (t >= 1) {
         this.burst = { at: shot.to, age: 0 };
+        this.screen.begin(this.canvas.getBoundingClientRect(), shot.to);
         this.shot = null;
         if (!reduced) this.emit(shot.to.x, shot.to.y, 150, true);
       }
     }
     if (this.burst) {
       this.burst.age += dt;
-      const { at, age } = this.burst;
-      ctx.globalCompositeOperation = "lighter";
-      this.glow(
-        at.x,
-        at.y,
-        reduced ? 55 : 60 + age * 120,
-        Math.max(0, 0.6 - age * 0.65),
-      );
-      if (!reduced) {
-        ctx.strokeStyle = `rgba(255,169,65,${Math.max(0, 0.5 - age * 0.55)})`;
-        ctx.lineWidth = 3 * (1 - Math.min(age, 1)) + 1;
-        ctx.beginPath();
-        ctx.ellipse(
-          at.x,
-          at.y,
-          35 + age * 180,
-          18 + age * 90,
-          0,
-          0,
-          Math.PI * 2,
-        );
-        ctx.stroke();
+      this.screen.paint(this.burst.age, reduced);
+      if (this.burst.age > 2.3) {
+        this.burst = null;
+        this.screen.clear();
       }
-      if (age > 1.3) this.burst = null;
     }
     for (const p of this.particles) {
       p.life -= dt;

@@ -11,6 +11,9 @@ import {
   Square,
   Trash2,
   Undo2,
+  Redo2,
+  Maximize2,
+  Minimize2,
   ScanEye,
 } from "lucide-react";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
@@ -21,13 +24,16 @@ import {
   type Point,
 } from "../../lib/air-writing";
 import { FireRenderer } from "../../lib/fire-renderer";
+import { appendInk, finishInk, repaintInk, type Stroke } from "../../lib/ink";
 import { cameraError } from "../../lib/vision";
-type Stroke = { points: Point[]; color: string; width: number };
 export default function AirWriting() {
   const video = useRef<HTMLVideoElement>(null),
     canvas = useRef<HTMLCanvasElement>(null),
     cursor = useRef<HTMLDivElement>(null),
     fireCanvas = useRef<HTMLCanvasElement>(null),
+    screenFire = useRef<HTMLCanvasElement>(null),
+    redoStrokes = useRef<Stroke[]>([]),
+    stabilizationRef = useRef(0.6),
     fire = useRef<FireRenderer | null>(null),
     media = useRef<MediaStream | null>(null),
     detector = useRef<HandLandmarker | null>(null),
@@ -48,8 +54,16 @@ export default function AirWriting() {
     [error, setError] = useState(""),
     [count, setCount] = useState(0),
     [color, setColor] = useState("#bcf77b"),
-    [width, setWidth] = useState(7);
+    [width, setWidth] = useState(7),
+    [redoCount, setRedoCount] = useState(0),
+    [stabilization, setStabilization] = useState(0.6),
+    [brightness, setBrightness] = useState(85),
+    [focus, setFocus] = useState(false),
+    [aspect, setAspect] = useState(16 / 9),
+    [resolution, setResolution] = useState("HD canvas");
   function endStroke() {
+    const ctx = canvas.current?.getContext("2d");
+    if (ctx && current.current) finishInk(ctx, current.current);
     previous.current = null;
     current.current = null;
   }
@@ -67,7 +81,7 @@ export default function AirWriting() {
   }
   useEffect(() => {
     const lifecycle = epoch;
-    const renderer = new FireRenderer(fireCanvas.current!);
+    const renderer = new FireRenderer(fireCanvas.current!, screenFire.current!);
     fire.current = renderer;
     return () => {
       renderer.destroy();
@@ -91,35 +105,15 @@ export default function AirWriting() {
       return;
     }
     if (!connects(previousPoint, next)) {
+      endStroke();
+      redoStrokes.current = [];
+      setRedoCount(0);
       current.current = { points: [{ x: next.x, y: next.y }], ...ink.current };
       strokes.current.push(current.current);
       setCount(strokes.current.length);
     } else current.current?.points.push({ x: next.x, y: next.y });
-    const c = canvas.current,
-      ctx = c?.getContext("2d");
-    if (c && ctx) {
-      ctx.strokeStyle = ink.current.color;
-      ctx.fillStyle = ink.current.color;
-      ctx.lineWidth = ink.current.width;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      if (connects(previousPoint, next)) {
-        ctx.beginPath();
-        ctx.moveTo(previousPoint!.x * c.width, previousPoint!.y * c.height);
-        ctx.lineTo(next.x * c.width, next.y * c.height);
-        ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.arc(
-          next.x * c.width,
-          next.y * c.height,
-          ink.current.width / 2,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-      }
-    }
+    const ctx = canvas.current?.getContext("2d");
+    if (ctx && current.current) appendInk(ctx, current.current);
     previous.current = next;
   }
   async function start() {
@@ -135,8 +129,9 @@ export default function AirWriting() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: false,
       });
@@ -148,6 +143,16 @@ export default function AirWriting() {
       video.current!.srcObject = stream;
       await video.current!.play();
       if (id !== epoch.current) return;
+      const v = video.current!;
+      const ratio = v.videoWidth / v.videoHeight;
+      if (Number.isFinite(ratio) && ratio > 0) {
+        setAspect(ratio);
+        setResolution(`${v.videoWidth} × ${v.videoHeight} camera`);
+        const c = canvas.current!;
+        c.width = Math.round(Math.min(1920, Math.sqrt(2073600 * ratio)));
+        c.height = Math.round(c.width / ratio);
+        redraw();
+      }
       phase = "model";
       setStatus("Loading hand tracking · first download may take a moment…");
       const { FilesetResolver, HandLandmarker } =
@@ -185,13 +190,17 @@ export default function AirWriting() {
           if (
             video.current &&
             video.current.readyState >= 2 &&
-            time - lastFrame >= 40 &&
+            time - lastFrame >= 32 &&
             video.current.currentTime !== lastTime
           ) {
             lastFrame = time;
             lastTime = video.current.currentTime;
             const result = hand.detectForVideo(video.current, time);
-            const pen = trackPen(result.landmarks[0], previous.current);
+            const pen = trackPen(
+              result.landmarks[0],
+              previous.current,
+              stabilizationRef.current,
+            );
             if (!pausedRef.current && !manualRef.current)
               fire.current?.update(result.landmarks[0], time);
             if (cursor.current) {
@@ -246,35 +255,8 @@ export default function AirWriting() {
     }
   }
   function redraw() {
-    const c = canvas.current,
-      ctx = c?.getContext("2d");
-    if (!c || !ctx) return;
-    ctx.clearRect(0, 0, c.width, c.height);
-    for (const stroke of strokes.current) {
-      ctx.strokeStyle = stroke.color;
-      ctx.fillStyle = stroke.color;
-      ctx.lineWidth = stroke.width;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      stroke.points.forEach((p, i) => {
-        if (i === 0) ctx.moveTo(p.x * c.width, p.y * c.height);
-        else ctx.lineTo(p.x * c.width, p.y * c.height);
-      });
-      ctx.stroke();
-      if (stroke.points.length === 1) {
-        const p = stroke.points[0];
-        ctx.beginPath();
-        ctx.arc(
-          p.x * c.width,
-          p.y * c.height,
-          stroke.width / 2,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-      }
-    }
+    const ctx = canvas.current?.getContext("2d");
+    if (ctx) repaintInk(ctx, strokes.current);
   }
   function point(e: PointerEvent<HTMLCanvasElement>) {
     const r = e.currentTarget.getBoundingClientRect();
@@ -286,11 +268,12 @@ export default function AirWriting() {
   }
   function save() {
     const output = document.createElement("canvas");
-    output.width = 1280;
-    output.height = 720;
+    endStroke();
+    output.width = canvas.current!.width;
+    output.height = canvas.current!.height;
     const ctx = output.getContext("2d")!;
     ctx.fillStyle = "#0a0c10";
-    ctx.fillRect(0, 0, 1280, 720);
+    ctx.fillRect(0, 0, output.width, output.height);
     ctx.drawImage(canvas.current!, 0, 0);
     const link = document.createElement("a");
     link.download = "senseai-air-writing.png";
@@ -298,7 +281,12 @@ export default function AirWriting() {
     link.click();
   }
   return (
-    <main className="air-page">
+    <main className={`air-page ${focus ? "air-focus" : ""}`}>
+      <canvas
+        ref={screenFire}
+        className="screen-fire-effects"
+        aria-hidden="true"
+      />
       <nav>
         <Link className="brand" href="/">
           <ScanEye />
@@ -326,9 +314,10 @@ export default function AirWriting() {
               {manual ? "MOUSE / TOUCH" : running ? "HAND TRACKING" : "STANDBY"}
             </span>
           </div>
-          <div className="air-stage">
+          <div className="air-stage" style={{ aspectRatio: aspect }}>
             <video
               ref={video}
+              style={{ opacity: brightness / 100 }}
               muted
               playsInline
               aria-label="Mirrored hand tracking camera"
@@ -342,8 +331,8 @@ export default function AirWriting() {
             )}
             <canvas
               ref={canvas}
-              width={1280}
-              height={720}
+              width={1920}
+              height={1080}
               aria-label="Air writing drawing canvas"
               className={manual ? "manual-canvas" : ""}
               onPointerDown={(e) => {
@@ -373,6 +362,19 @@ export default function AirWriting() {
               height={540}
               aria-hidden="true"
             />
+          </div>
+          <div className="air-quality">
+            <span>
+              <span className="dot" /> {resolution}
+            </span>
+            <span>{count} strokes · Smoothed ink</span>
+            <button
+              className="icon-button"
+              aria-label={focus ? "Exit focus canvas" : "Focus canvas"}
+              onClick={() => setFocus(!focus)}
+            >
+              {focus ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
           </div>
           <div className="camera-toolbar air-toolbar">
             <button
@@ -444,13 +446,41 @@ export default function AirWriting() {
               }}
             />
           </label>
+          <label>
+            Stroke stabilization <span>{Math.round(stabilization * 100)}%</span>
+            <input
+              aria-label="Stroke stabilization"
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={stabilization}
+              onChange={(e) => {
+                setStabilization(+e.target.value);
+                stabilizationRef.current = +e.target.value;
+              }}
+            />
+          </label>
+          <label>
+            Camera visibility <span>{brightness}%</span>
+            <input
+              aria-label="Camera visibility"
+              type="range"
+              min="0"
+              max="100"
+              value={brightness}
+              onChange={(e) => setBrightness(+e.target.value)}
+            />
+          </label>
           <div className="air-actions">
             <button
               className="button"
               disabled={!count}
               onClick={() => {
                 endStroke();
-                strokes.current.pop();
+                const removed = strokes.current.pop();
+                if (removed) redoStrokes.current.push(removed);
+                setRedoCount(redoStrokes.current.length);
                 setCount(strokes.current.length);
                 redraw();
               }}
@@ -460,10 +490,27 @@ export default function AirWriting() {
             </button>
             <button
               className="button"
+              disabled={!redoCount}
+              onClick={() => {
+                endStroke();
+                const restored = redoStrokes.current.pop();
+                if (restored) strokes.current.push(restored);
+                setRedoCount(redoStrokes.current.length);
+                setCount(strokes.current.length);
+                redraw();
+              }}
+            >
+              <Redo2 size={16} />
+              Redo stroke
+            </button>
+            <button
+              className="button"
               disabled={!count}
               onClick={() => {
                 endStroke();
                 strokes.current = [];
+                redoStrokes.current = [];
+                setRedoCount(0);
                 setCount(0);
                 redraw();
               }}
@@ -494,16 +541,16 @@ export default function AirWriting() {
           <h3>Open to charge. Close to launch.</h3>
           <p className="air-note">
             Open your hand briefly to build a flame, then close all four fingers
-            into a fist to release a fireball. It travels across the camera view
-            and bursts into sparks. Pinch to write as before. Effects stay out
-            of saved drawings.
+            into a fist to release a fireball. It rushes toward you and bursts
+            across the whole screen with rolling fire, smoke and embers. Pinch
+            to write as before. Effects stay out of saved drawings.
           </p>
           <button className="button" onClick={() => fire.current?.preview()}>
-            Preview fireball effect
+            Preview full-screen burst
           </button>
           <p className="air-note">
             Preview plays the animation without using your camera.
-            Reduced-motion settings soften the effect.
+            Reduced-motion settings soften the effect. Press Escape to dismiss.
           </p>
           <h3>Three simple steps</h3>
           <ol>
