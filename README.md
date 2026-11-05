@@ -1,1 +1,29 @@
-# senseai
+# SenseAI
+
+A browser-based visual assistant built with Next.js, TypeScript, TensorFlow.js COCO-SSD, Tesseract.js, and Web Speech APIs.
+
+## Run locally
+
+Use Node.js 22 or 24. Clone this repository, run `npm ci`, then `npm run dev`. Open localhost:3000 and launch the studio. A webcam is optional until you choose Start camera. Production requires HTTPS for camera and microphone permissions.
+
+## Features
+
+- Real webcam capture and COCO-SSD object detection with confidence and bounding boxes.
+- English OCR from captured camera frames; copy and speech output.
+- Typed questions about detections, counts, positions, and captured text.
+- Browser speech recognition where supported; opt-in spoken answers.
+- Responsive dark interface, high contrast and larger-text settings.
+
+Models and OCR language assets download on first use. No camera frames are uploaded by this application. Browser speech recognition may send audio to the browser vendor. COCO-SSD recognizes its pretrained object classes only and can miss objects. Full vision-language reasoning is **not configured**; no API key is required for the browser features. SenseAI cannot estimate distance or judge safety and is not a navigation system.
+
+## Checks
+
+`npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. `npm start` serves the production build. Unit tests cover evidence-based responses and localization; see PROJECT_STATUS.md for browser validation evidence.
+
+## Deployment
+
+Import `Daniverse-dev7/senseai` into Vercel, select Next.js, and deploy the `work` branch (or merge it into your production branch). Build: `npm run build`; install: `npm ci`. No environment variables required. HTTPS is supplied by Vercel. Model access requires storage.googleapis.com, tfhub.dev and its model redirects; OCR uses cdn.jsdelivr.net and tessdata.projectnaptha.com. Verify camera permission and model/OCR downloads on the actual deployment before announcing launch. No public deployment URL has yet been verified.
+
+## Resume from another computer
+
+Clone `https://github.com/Daniverse-dev7/senseai.git`, fetch branches, check out `work`, and read AGENTS.md, PROJECT_STATUS.md, DEVELOPMENT_LOG.md and NEXT_STEPS.md. Run `git pull --ff-only`, `npm ci`, and the checks above. Never store secrets in Git.
