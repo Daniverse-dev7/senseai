@@ -1,5 +1,7 @@
 # Next steps
 
+Newest modes: Lightning, Freeze + shatter, Living drawings. Verify two-palm linking and one-fist release on a real webcam, frost sweep/close/thrust, palm-following of actual ink, reduced motion and recordings on desktop/mobile after Vercel deploys.
+
 Latest change: cinematic texture layers and open → fist → forward-thrust release for fire and portals. Verify real webcam thresholds across lighting, skin tones, hand sizes and phone cameras; no physical-camera validation is claimed.
 
 All three milestones are implemented: two-hand energy, circle-to-portal drawing, and local video recording. After Vercel deploys main, verify physical two-hand gestures, circle drawing and a downloaded camera/effects clip on desktop and mobile. The cloud browser tests use real rendering/encoding but cannot validate physical hand tracking.

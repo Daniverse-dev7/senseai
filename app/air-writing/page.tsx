@@ -25,12 +25,18 @@ import {
 } from "../../lib/air-writing";
 import RecordingPanel from "./recording-panel";
 import { SceneRecorder } from "../../lib/scene-recorder";
+import { ElementRenderer } from "../../lib/element-renderer";
+import { openPalm } from "../../lib/air-writing";
+type Effect = "fire" | "energy" | "portal" | "lightning" | "ice" | "living";
 import { recognizePortal } from "../../lib/portal";
 import { MagicRenderer } from "../../lib/magic-renderer";
 import { FireRenderer } from "../../lib/fire-renderer";
 import { appendInk, finishInk, repaintInk, type Stroke } from "../../lib/ink";
 import { cameraError } from "../../lib/vision";
 export default function AirWriting() {
+  const elements = useRef<ElementRenderer | null>(null);
+  const elementCanvas = useRef<HTMLCanvasElement>(null);
+  const livingHeld = useRef<number | null>(null);
   const recorder = useRef<SceneRecorder | null>(null);
   const video = useRef<HTMLVideoElement>(null),
     canvas = useRef<HTMLCanvasElement>(null),
@@ -38,7 +44,7 @@ export default function AirWriting() {
     fireCanvas = useRef<HTMLCanvasElement>(null),
     magicCanvas = useRef<HTMLCanvasElement>(null),
     magic = useRef<MagicRenderer | null>(null),
-    effectRef = useRef<"fire" | "energy" | "portal">("fire"),
+    effectRef = useRef<Effect>("fire"),
     screenFire = useRef<HTMLCanvasElement>(null),
     redoStrokes = useRef<Stroke[]>([]),
     stabilizationRef = useRef(0.6),
@@ -69,7 +75,7 @@ export default function AirWriting() {
     [focus, setFocus] = useState(false),
     [aspect, setAspect] = useState(16 / 9),
     [resolution, setResolution] = useState("HD canvas"),
-    [effect, setEffect] = useState<"fire" | "energy" | "portal">("fire");
+    [effect, setEffect] = useState<Effect>("fire");
   function endStroke() {
     const ctx = canvas.current?.getContext("2d");
     if (ctx && current.current) finishInk(ctx, current.current);
@@ -109,6 +115,8 @@ export default function AirWriting() {
     if (cursor.current) cursor.current.style.display = "none";
     fire.current?.reset();
     magic.current?.reset();
+    elements.current?.reset();
+    livingHeld.current = null;
     endStroke();
   }
   useEffect(() => {
@@ -117,9 +125,12 @@ export default function AirWriting() {
     fire.current = renderer;
     const magicRenderer = new MagicRenderer(magicCanvas.current!);
     magic.current = magicRenderer;
+    const elementRenderer = new ElementRenderer(elementCanvas.current!);
+    elements.current = elementRenderer;
     return () => {
       renderer.destroy();
       magicRenderer.destroy();
+      elementRenderer.destroy();
       lifecycle.current++;
       cancelAnimationFrame(frame.current);
       media.current?.getTracks().forEach((t) => t.stop());
@@ -237,7 +248,22 @@ export default function AirWriting() {
               stabilizationRef.current,
             );
             if (!pausedRef.current && !manualRef.current) {
-              if (effectRef.current === "energy")
+              if (["lightning", "ice", "living"].includes(effectRef.current)) {
+                elements.current?.update(
+                  effectRef.current as "lightning" | "ice" | "living",
+                  result.landmarks,
+                  time,
+                );
+                if (
+                  effectRef.current === "living" &&
+                  result.landmarks.length === 1 &&
+                  openPalm(result.landmarks[0])
+                ) {
+                  livingHeld.current ??= time;
+                  if (time - livingHeld.current > 600)
+                    elements.current?.awaken(canvas.current!, strokes.current);
+                } else livingHeld.current = null;
+              } else if (effectRef.current === "energy")
                 magic.current?.updateHands(result.landmarks, time);
               else if (effectRef.current === "portal")
                 magic.current?.updatePortalHand(
@@ -256,7 +282,9 @@ export default function AirWriting() {
             }
             if (cursor.current) {
               cursor.current.style.display =
-                pen && !manualRef.current && effectRef.current !== "energy"
+                pen &&
+                !manualRef.current &&
+                !["energy", "lightning", "ice"].includes(effectRef.current)
                   ? "block"
                   : "none";
               if (pen) {
@@ -285,7 +313,10 @@ export default function AirWriting() {
               lastMode = mode;
             }
             if (!manualRef.current) {
-              if (!pausedRef.current && effectRef.current !== "energy")
+              if (
+                !pausedRef.current &&
+                !["energy", "lightning", "ice"].includes(effectRef.current)
+              )
                 draw(pen);
               else endStroke();
             }
@@ -377,7 +408,16 @@ export default function AirWriting() {
             role="group"
             aria-label="Choose interaction"
           >
-            {(["fire", "energy", "portal"] as const).map((mode) => (
+            {(
+              [
+                "fire",
+                "energy",
+                "portal",
+                "lightning",
+                "ice",
+                "living",
+              ] as const
+            ).map((mode) => (
               <button
                 key={mode}
                 className={effect === mode ? "selected" : ""}
@@ -386,6 +426,8 @@ export default function AirWriting() {
                   endStroke();
                   fire.current?.reset();
                   magic.current?.reset();
+                  elements.current?.reset();
+                  livingHeld.current = null;
                   effectRef.current = mode;
                   setEffect(mode);
                   if (cursor.current) cursor.current.style.display = "none";
@@ -395,7 +437,13 @@ export default function AirWriting() {
                   ? "Writing + fire"
                   : mode === "energy"
                     ? "Two-hand energy"
-                    : "Portal drawing"}
+                    : mode === "portal"
+                      ? "Portal drawing"
+                      : mode === "lightning"
+                        ? "Lightning"
+                        : mode === "ice"
+                          ? "Freeze + shatter"
+                          : "Living drawings"}
               </button>
             ))}
           </div>
@@ -446,6 +494,13 @@ export default function AirWriting() {
               height={540}
               aria-hidden="true"
             />
+            <canvas
+              ref={elementCanvas}
+              className="element-effects"
+              width={960}
+              height={540}
+              aria-hidden="true"
+            />
             <div ref={cursor} className="air-cursor" aria-hidden="true" />
             <canvas
               ref={fireCanvas}
@@ -491,6 +546,8 @@ export default function AirWriting() {
               onClick={() => {
                 fire.current?.reset();
                 magic.current?.reset();
+                elements.current?.reset();
+                livingHeld.current = null;
                 pausedRef.current = !paused;
                 setPaused(!paused);
                 endStroke();
@@ -623,6 +680,8 @@ export default function AirWriting() {
               onChange={(e) => {
                 fire.current?.reset();
                 magic.current?.reset();
+                elements.current?.reset();
+                livingHeld.current = null;
                 manualRef.current = e.target.checked;
                 setManual(e.target.checked);
                 endStroke();
@@ -632,7 +691,50 @@ export default function AirWriting() {
             />{" "}
             Mouse / touch drawing
           </label>
-          {effect === "portal" ? (
+          {["lightning", "ice", "living"].includes(effect) ? (
+            <>
+              <h3>
+                {effect === "lightning"
+                  ? "Electricity between your hands"
+                  : effect === "ice"
+                    ? "Freeze the scene. Break the ice."
+                    : "Let your ink take flight"}
+              </h3>
+              <p className="air-note">
+                {effect === "lightning"
+                  ? "Show two open palms to link them with lightning. Keep both visible, close one into a fist, then push it toward the camera to release a branching bolt."
+                  : effect === "ice"
+                    ? "Sweep one open palm across the camera to spread frost. Close it to crack the ice, then promptly thrust toward the camera to shatter it. Frost fades automatically; Escape clears it."
+                    : "Draw a butterfly, star, or any sketch. Hold one open palm for a moment to animate a glowing copy, then move your palm to guide it. Or use Bring drawing to life. Your original ink is kept. This animates your drawing; it does not identify what you drew."}
+              </p>
+              {effect === "living" && (
+                <button
+                  className="button"
+                  disabled={!count}
+                  onClick={() => {
+                    endStroke();
+                    elements.current?.awaken(canvas.current!, strokes.current);
+                  }}
+                >
+                  Bring drawing to life
+                </button>
+              )}
+              <button
+                className="button"
+                onClick={() =>
+                  elements.current?.previewEffect(
+                    effect as "lightning" | "ice" | "living",
+                  )
+                }
+              >
+                {effect === "lightning"
+                  ? "Preview lightning"
+                  : effect === "ice"
+                    ? "Preview freeze + shatter"
+                    : "Preview butterfly"}
+              </button>
+            </>
+          ) : effect === "portal" ? (
             <>
               <h3>Draw a doorway to somewhere else</h3>
               <p className="air-note">
@@ -691,7 +793,7 @@ export default function AirWriting() {
           <RecordingPanel
             video={video}
             ink={canvas}
-            layers={[fireCanvas, magicCanvas, screenFire]}
+            layers={[fireCanvas, magicCanvas, elementCanvas, screenFire]}
             recorderRef={recorder}
           />
           <h3>Three simple steps</h3>

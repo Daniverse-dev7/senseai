@@ -55,3 +55,11 @@ Each interaction has a camera-free preview. Escape clears effects; reduced-motio
 In Writing + fire or Portal drawing mode, hold an open palm briefly, close all four fingers into a fist, then promptly push the fist toward the camera while keeping it visible. Closing alone no longer launches fire. The tracker uses sustained growth of palm bones in the image as a forward-motion cue; keep the palm facing the camera. Portal mode also retains circle drawing. Two-hand energy retains its two-open-palms push gesture.
 
 Fire now builds a textured hot core while charging, with a growing turbulent projectile. Energy has counter-rotating plasma shells and electric filaments. Portals layer moving nebula textures and spiral filaments over their tunnel, starfield and spark rim. Textures are generated once and reused; reduced-motion preferences remain supported. This is stylized real-time VFX; physical-camera calibration and device performance still require real-world testing.
+
+### Lightning, freeze + shatter, and living drawings
+
+- **Lightning:** show two open palms to connect them with branching electricity. Keep both visible; close one fist and push it toward the camera to release. Camera-free preview demonstrates the same renderer.
+- **Freeze + shatter:** sweep one open palm sideways across the camera. Frost spreads over the scene; close the hand to crack it, then promptly thrust toward the camera to scatter the shards. It clears automatically or with Escape.
+- **Living drawings:** draw any sketch, then hold one open palm for a moment, or click Bring drawing to life. A glowing copy flies and follows your visible palm for ten seconds. The original ink remains available for PNG export. This animates your actual ink rather than recognizing its subject. Preview butterfly is a clearly labeled built-in example.
+
+All three effects are local canvas layers included in video recordings. Stop, pause, mode changes, Escape, visibility loss and navigation clear the effects. Reduced motion softens movement. Webcam gesture accuracy and real-device performance still require physical testing; the effects are stylized, not photorealistic simulation.

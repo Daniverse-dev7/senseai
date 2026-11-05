@@ -6,6 +6,8 @@ Next.js App Router: app/page.tsx is the landing page; app/studio/page.tsx owns c
 
 lib/energy-gesture.ts handles two-palm release; lib/portal.ts recognizes closed circles; lib/magic-renderer.ts draws energy and portals. lib/scene-recorder.ts composites camera and effect layers for local video export; app/air-writing/recording-panel.tsx owns recording UI. Keep recordings local, bounded, and release capture tracks on stop/unmount.
 
+lib/element-gesture.ts gates lightning and ice gestures; lib/element-renderer.ts owns lightning, frost shards and animated ink copies. Living drawings animate user ink without claiming shape recognition. Include the element canvas in scene recordings.
+
 Use strict TypeScript. Never fabricate detections, OCR output, scene reasoning, deployment URLs or test outcomes. Never send secrets to client JavaScript. Preserve camera cleanup, inference serialization and permission fallback behavior.
 
 Run npm test, npm run typecheck, npm run lint and npm run build. Browser tests must distinguish mocked camera control tests from real model inference. Check permission failures, resource cleanup, OCR, speech fallback and responsive layout.
