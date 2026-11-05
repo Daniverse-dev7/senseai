@@ -34,6 +34,9 @@ export default function Home() {
         <Link className="button primary" href="/studio">
           Launch SenseAI <ArrowUpRight size={20} />
         </Link>
+        <Link className="button" style={{ marginLeft: 12 }} href="/air-writing">
+          Try air writing <ArrowUpRight size={18} />
+        </Link>
         <div className="privacy">
           <ShieldCheck size={16} /> Detection and OCR run in your browser.
         </div>

@@ -1,5 +1,7 @@
 # Next steps
 
+**Latest feature:** Air writing is implemented at `/air-writing`. After Vercel finishes deploying the new main commit, test one-hand tracking, pinch/release between strokes, pause, clear, undo and saved PNG on a physical webcam. Hand-model inference remains unverified here because the cloud blocks its official download host. User reports the site is deployed; request its real URL for independent checks.
+
 1. **Public deployment:** Import https://github.com/Daniverse-dev7/senseai into Vercel. Select the branch with the final implementation (`work`; `main` is also intended to receive the final fast-forward checkpoint). Choose Next.js, install `npm ci`, build `npm run build`. No environment variables needed. Send the actual HTTPS deployment URL for verification.
 2. **Real device verification:** Start camera on the HTTPS site in desktop Chrome. Confirm real boxes/counts/localization with a person and chair/bottle; recognize a printed text page; test text copy and audible output; ask typed and spoken questions; deny permissions; stop camera and confirm its indicator goes off. Repeat basic camera/layout checks on a mobile browser.
 3. **Cloud detector validation:** Review/save the saved storage.googleapis.com network addition in environment settings and publish the environment. Retry actual model inference; do not claim it passed until it does. Vercel domains were also added to the draft, but deployment still requires authentication.

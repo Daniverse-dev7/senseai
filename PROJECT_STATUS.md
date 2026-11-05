@@ -29,3 +29,15 @@ Completed: Next.js landing page and responsive studio; real webcam access and cl
 First implementation commit pushed and remote-verified: `aaf5327a5e7fbd490b095f9dd6ba80ad4389c4a3`. The final validation checkpoint is the commit containing this status file. Resolve its exact hash with `git log -1`; verify it against `git ls-remote origin refs/heads/work refs/heads/main`. This avoids embedding a self-referential commit hash.
 
 Known limitations: pretrained COCO classes only; English OCR; models need first-use downloads; speech varies by browser and may use its vendor's service. No distance or safety judgments. No private keys are needed for the primary workflow.
+
+## 2026-11-05 — Air writing feature
+
+User reports the original app is deployed; a public URL has not been supplied, so deployment is not independently verified.
+
+Added `/air-writing`, linked from the landing page and studio. MediaPipe Hand Landmarker tracks a single index fingertip against a mirrored camera preview. Thumb/index pinch puts the pen down; releasing lifts it. Includes smoothing, discontinuity handling, pause/resume, color/width controls, undo, clear, PNG export without camera pixels, and a mouse/touch fallback.
+
+Validation: 9 unit tests and 11 production Chromium browser tests passed; TypeScript, lint and production build passed. New browser tests verify real canvas drawing, pause, undo, clear, PNG download, mobile width, denied camera permissions, canceled permission cleanup, and hand-model download failure cleanup. Unit tests cover mirrored coordinates, pinch hysteresis, missing/invalid hands, and preventing connections across large jumps/lifted pens.
+
+Actual hand-model inference and physical hand writing remain unverified: the running cloud policy still returns HTTP 403 for storage.googleapis.com. The hand tracker is real MediaPipe integration, not simulated landmarks. Test the feature with a webcam on the actual deployment. It draws ink only; it does not transcribe handwriting into typed text or recognize sign language.
+
+The implementation checkpoint is the commit containing this entry; verify local HEAD against origin/main and origin/work. Pushing main should trigger the connected Vercel project, but successful rollout still requires deployment evidence.

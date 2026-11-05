@@ -301,12 +301,10 @@ export default function Studio() {
                         : null;
                   if (target)
                     requestAnimationFrame(() =>
-                      document
-                        .getElementById(target)
-                        ?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        }),
+                      document.getElementById(target)?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      }),
                     );
                 }}
               >
@@ -316,6 +314,10 @@ export default function Studio() {
             );
           })}
         </nav>
+        <Link className="nav-item air-link" href="/air-writing">
+          <ScanEye size={19} />
+          Air Writing
+        </Link>
         <div className="sidebar-bottom">
           <ShieldCheck size={20} />
           <strong>On-device intelligence</strong>

@@ -2,7 +2,7 @@
 
 Read PROJECT_STATUS.md, DEVELOPMENT_LOG.md and NEXT_STEPS.md first. Verify branch, working tree, remote and remote synchronization before editing. Each cloud task is isolated; use the existing checkout and do not create worktrees unless requested.
 
-Next.js App Router: app/page.tsx is the landing page; app/studio/page.tsx owns camera and browser inference; lib/vision.ts contains pure evidence-based response functions. app/globals.css provides responsive styling. Tests live in tests/.
+Next.js App Router: app/page.tsx is the landing page; app/studio/page.tsx owns camera and browser inference; lib/vision.ts contains pure evidence-based response functions. app/globals.css provides responsive styling. Tests live in tests/. Air writing lives in app/air-writing/page.tsx; lib/air-writing.ts contains pinch, smoothing and stroke-connect logic. Keep the MediaPipe CDN WASM version aligned with the pinned package. Air writing draws ink and must not be presented as text transcription.
 
 Use strict TypeScript. Never fabricate detections, OCR output, scene reasoning, deployment URLs or test outcomes. Never send secrets to client JavaScript. Preserve camera cleanup, inference serialization and permission fallback behavior.
 

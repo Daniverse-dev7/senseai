@@ -15,3 +15,9 @@ Fixed object counts for absent categories, made model-download failures actionab
 A failed browser test initially selected Next.js's route-announcement alert as well as the application error; scoped the selector. Another generated-camera fixture produced no frames; drawing frames corrected the fixture and the actual failure path passed. No assertions were disabled.
 
 Cloud egress blocks storage.googleapis.com, preventing actual detector-model validation. Saved domain additions with reusable environment installation/start instructions; saving does not apply runtime policy or deploy the site. Vercel credentials are unavailable. Public release and real-device checks remain pending, and are not presented as completed.
+
+## Air writing
+
+Implemented an independent browser-only MediaPipe Hand Landmarker workflow so air writing does not require the COCO object model to start. A mirrored index-tip cursor follows one hand; normalized thumb/index pinch distance relative to palm size controls pen contact with hysteresis. Stroke smoothing reduces jitter; pen release, tracking loss and large jumps separate strokes. Manual drawing remains available when model loading fails. Camera resources, animation loops and late model creation are guarded on stop/unmount.
+
+Canvas history supports undo, clear, color/width changes and PNG export of ink only. Pinned MediaPipe JavaScript/WASM to the same version. Added focused gesture unit tests and browser drawing/export/lifecycle checks, then ran all existing regressions: 9 unit and 11 browser tests passed. Actual physical hand-tracking inference is not verified because cloud egress still blocks the official model host. No fake tracking results are used.
