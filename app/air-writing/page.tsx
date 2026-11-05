@@ -16,6 +16,7 @@ import {
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
 import {
   trackPen,
+  openPalm,
   connects,
   type Pen,
   type Point,
@@ -26,6 +27,8 @@ export default function AirWriting() {
   const video = useRef<HTMLVideoElement>(null),
     canvas = useRef<HTMLCanvasElement>(null),
     cursor = useRef<HTMLDivElement>(null),
+    fire = useRef<HTMLDivElement>(null),
+    openFrames = useRef(0),
     media = useRef<MediaStream | null>(null),
     detector = useRef<HandLandmarker | null>(null),
     epoch = useRef(0),
@@ -59,6 +62,8 @@ export default function AirWriting() {
     detector.current = null;
     if (video.current) video.current.srcObject = null;
     if (cursor.current) cursor.current.style.display = "none";
+    if (fire.current) fire.current.dataset.active = "false";
+    openFrames.current = 0;
     endStroke();
   }
   useEffect(() => {
@@ -185,6 +190,18 @@ export default function AirWriting() {
             lastTime = video.current.currentTime;
             const result = hand.detectForVideo(video.current, time);
             const pen = trackPen(result.landmarks[0], previous.current);
+            const palm =
+              !pausedRef.current && !manualRef.current
+                ? openPalm(result.landmarks[0])
+                : null;
+            openFrames.current = palm ? openFrames.current + 1 : 0;
+            if (fire.current) {
+              fire.current.dataset.active = String(openFrames.current >= 3);
+              if (palm) {
+                fire.current.style.left = `${palm.x * 100}%`;
+                fire.current.style.top = `${palm.y * 100}%`;
+              }
+            }
             if (cursor.current) {
               cursor.current.style.display =
                 pen && !manualRef.current ? "block" : "none";
@@ -357,6 +374,18 @@ export default function AirWriting() {
               }}
             />
             <div ref={cursor} className="air-cursor" aria-hidden="true" />
+            <div
+              ref={fire}
+              className="palm-fire"
+              data-active="false"
+              aria-hidden="true"
+            >
+              <span className="fire-glow" />
+              {Array.from({ length: 7 }, (_, i) => (
+                <i className={`fire-flame flame-${i}`} key={i} />
+              ))}
+              <span className="fire-core" />
+            </div>
           </div>
           <div className="camera-toolbar air-toolbar">
             <button
@@ -379,6 +408,8 @@ export default function AirWriting() {
               className="button"
               aria-pressed={paused}
               onClick={() => {
+                if (fire.current) fire.current.dataset.active = "false";
+                openFrames.current = 0;
                 pausedRef.current = !paused;
                 setPaused(!paused);
                 endStroke();
@@ -464,6 +495,8 @@ export default function AirWriting() {
               type="checkbox"
               checked={manual}
               onChange={(e) => {
+                if (fire.current) fire.current.dataset.active = "false";
+                openFrames.current = 0;
                 manualRef.current = e.target.checked;
                 setManual(e.target.checked);
                 endStroke();
@@ -473,6 +506,12 @@ export default function AirWriting() {
             />{" "}
             Mouse / touch drawing
           </label>
+          <h3>Open your hand, spark a flame</h3>
+          <p className="air-note">
+            Open your fist with all four fingers extended to reveal fire above
+            your palm. Close your hand to extinguish it. Pinch to keep writing.
+            The visual effect is not included in saved drawings.
+          </p>
           <h3>Three simple steps</h3>
           <ol>
             <li>Keep one hand in frame, with good lighting.</li>

@@ -1,5 +1,7 @@
 # Next steps
 
+Test the new fire effect on the live Air Writing page: open your fist with four fingers extended, close it, then pinch to write. Verify flames follow your palm and disappear on Stop.
+
 **Latest feature:** Air writing is implemented at `/air-writing`. After Vercel finishes deploying the new main commit, test one-hand tracking, pinch/release between strokes, pause, clear, undo and saved PNG on a physical webcam. Hand-model inference remains unverified here because the cloud blocks its official download host. User reports the site is deployed; request its real URL for independent checks.
 
 1. **Public deployment:** Import https://github.com/Daniverse-dev7/senseai into Vercel. Select the branch with the final implementation (`work`; `main` is also intended to receive the final fast-forward checkpoint). Choose Next.js, install `npm ci`, build `npm run build`. No environment variables needed. Send the actual HTTPS deployment URL for verification.

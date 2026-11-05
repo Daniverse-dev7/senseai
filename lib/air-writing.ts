@@ -33,3 +33,29 @@ export function trackPen(
 export function connects(previous: Pen | null, next: Pen | null) {
   return !!(previous?.down && next?.down && distance(previous, next) < 0.18);
 }
+
+/** Rotation-independent open-palm heuristic; folded fingers and pinches stay off. */
+export function openPalm(points: Point[] | undefined): Point | null {
+  if (
+    !points ||
+    points.length < 21 ||
+    points.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y))
+  )
+    return null;
+  const scale = distance(points[0], points[9]);
+  if (scale < 0.02 || distance(points[4], points[8]) / scale < 0.45)
+    return null;
+  const extended = [5, 9, 13, 17].every(
+    (base) =>
+      distance(points[base + 3], points[0]) >
+        distance(points[base + 1], points[0]) * 1.15 &&
+      distance(points[base + 3], points[base]) >
+        distance(points[base + 1], points[base]) * 1.5,
+  );
+  return extended
+    ? {
+        x: 1 - (points[0].x + points[9].x) / 2,
+        y: (points[0].y + points[9].y) / 2,
+      }
+    : null;
+}

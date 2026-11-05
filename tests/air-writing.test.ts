@@ -37,3 +37,40 @@ test("lifted pens and large tracking jumps never connect strokes", () => {
   assert.equal(connects({ ...p, down: false }, p), false);
   assert.equal(connects(null, p), false);
 });
+
+import { openPalm } from "../lib/air-writing";
+function palmFixture() {
+  const p = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.7 }));
+  p[0] = { x: 0.5, y: 0.9 };
+  p[4] = { x: 0.15, y: 0.55 };
+  for (const [i, base] of [5, 9, 13, 17].entries()) {
+    const x = 0.35 + i * 0.1;
+    p[base] = { x, y: 0.65 };
+    p[base + 1] = { x, y: 0.48 };
+    p[base + 2] = { x, y: 0.35 };
+    p[base + 3] = { x, y: 0.22 };
+  }
+  return p;
+}
+test("open palm triggers fire at mirrored palm center", () => {
+  const p = palmFixture();
+  assert.ok(openPalm(p));
+  assert.equal(openPalm(undefined), null);
+  assert.equal(openPalm([]), null);
+});
+test("closed fist, pointing and writing pinch do not trigger fire", () => {
+  const fist = palmFixture();
+  for (const base of [5, 9, 13, 17])
+    fist[base + 3] = { ...fist[base], y: 0.72 };
+  assert.equal(openPalm(fist), null);
+  const pinch = palmFixture();
+  pinch[4] = { ...pinch[8] };
+  assert.equal(openPalm(pinch), null);
+  const pointing = palmFixture();
+  pointing[12] = { ...pointing[9] };
+  assert.equal(openPalm(pointing), null);
+});
+test("open palm detection follows hand rotation", () => {
+  const rotated = palmFixture().map((p) => ({ x: p.y, y: 1 - p.x }));
+  assert.ok(openPalm(rotated));
+});

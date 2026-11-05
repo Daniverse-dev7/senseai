@@ -41,3 +41,7 @@ Validation: 9 unit tests and 11 production Chromium browser tests passed; TypeSc
 Actual hand-model inference and physical hand writing remain unverified: the running cloud policy still returns HTTP 403 for storage.googleapis.com. The hand tracker is real MediaPipe integration, not simulated landmarks. Test the feature with a webcam on the actual deployment. It draws ink only; it does not transcribe handwriting into typed text or recognize sign language.
 
 The implementation checkpoint is the commit containing this entry; verify local HEAD against origin/main and origin/work. Pushing main should trigger the connected Vercel project, but successful rollout still requires deployment evidence.
+
+## Open-palm fire animation
+
+Added animated flames that follow the mirrored palm when all four fingers are extended. Three consecutive tracked frames activate the effect; closing the hand, tracking loss, pause, manual mode and Stop turn it off. Pinching remains reserved for drawing. Flames are an overlay and do not appear in PNG exports; reduced-motion preferences disable flicker. Open/closed hand, pinch and rotation unit tests passed (12 total); lint, TypeScript and production build passed. Actual webcam gesture validation remains pending because the cloud blocks the hand-model download.

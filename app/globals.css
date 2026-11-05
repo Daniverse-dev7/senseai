@@ -1139,3 +1139,113 @@ a svg {
     margin-bottom: 12px;
   }
 }
+
+.palm-fire {
+  position: absolute;
+  pointer-events: none;
+  width: 130px;
+  height: 165px;
+  transform: translate(-50%, -95%);
+  opacity: 0;
+  transition: opacity 0.22s;
+  isolation: isolate;
+  filter: drop-shadow(0 0 12px #ff590099);
+}
+.palm-fire[data-active="true"] {
+  opacity: 1;
+}
+.fire-glow {
+  position: absolute;
+  inset: 30% -40% -25%;
+  background: radial-gradient(ellipse, #ff9b0060, transparent 65%);
+  border-radius: 50%;
+}
+.fire-flame {
+  position: absolute;
+  bottom: 8%;
+  left: 36%;
+  width: 30%;
+  height: 72%;
+  border-radius: 75% 10% 70% 40%;
+  transform-origin: 50% 100%;
+  background: linear-gradient(
+    0deg,
+    #fffbc4 0%,
+    #ffe544 20%,
+    #ff9205 50%,
+    #ef3913 80%,
+    #cf1e0000 100%
+  );
+  animation: palm-flame 0.65s ease-in-out infinite alternate;
+  animation-play-state: paused;
+  mix-blend-mode: screen;
+}
+.palm-fire[data-active="true"] .fire-flame {
+  animation-play-state: running;
+}
+.flame-0 {
+  left: 10%;
+  height: 48%;
+  animation-delay: -0.2s;
+}
+.flame-1 {
+  left: 22%;
+  height: 70%;
+  animation-delay: -0.5s;
+}
+.flame-2 {
+  left: 38%;
+  height: 88%;
+  animation-delay: -0.1s;
+}
+.flame-3 {
+  left: 52%;
+  height: 62%;
+  animation-delay: -0.45s;
+}
+.flame-4 {
+  left: 64%;
+  height: 43%;
+  animation-delay: -0.3s;
+}
+.flame-5 {
+  left: 30%;
+  height: 56%;
+  animation-delay: -0.6s;
+}
+.flame-6 {
+  left: 48%;
+  height: 48%;
+  animation-delay: -0.15s;
+}
+.fire-core {
+  position: absolute;
+  bottom: 4%;
+  left: 28%;
+  width: 48%;
+  height: 35%;
+  border-radius: 50% 50% 40% 40%;
+  background: radial-gradient(
+    ellipse at bottom,
+    #fffef1 5%,
+    #fff5a0 35%,
+    #ffbc20aa 65%,
+    transparent 75%
+  );
+}
+@keyframes palm-flame {
+  from {
+    transform: rotate(-12deg) scale(0.88, 0.88);
+  }
+  to {
+    transform: rotate(10deg) scale(1.06, 1.14);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fire-flame {
+    animation: none;
+  }
+  .palm-fire {
+    transition: none;
+  }
+}
