@@ -2,6 +2,8 @@
 
 A browser-based visual assistant built with Next.js, TypeScript, TensorFlow.js COCO-SSD, Tesseract.js, and Web Speech APIs.
 
+![SenseAI studio](docs/studio.png)
+
 ## Run locally
 
 Use Node.js 22 or 24. Clone this repository, run `npm ci`, then `npm run dev`. Open localhost:3000 and launch the studio. A webcam is optional until you choose Start camera. Production requires HTTPS for camera and microphone permissions.
@@ -18,11 +20,11 @@ Models and OCR language assets download on first use. No camera frames are uploa
 
 ## Checks
 
-`npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. `npm start` serves the production build. Unit tests cover evidence-based responses and localization; see PROJECT_STATUS.md for browser validation evidence.
+`npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. `npm start` serves the production build. Five unit tests cover evidence-based responses and localization. Seven Chromium tests cover UI, generated-media camera lifecycle, permission errors, real OCR, and speech controls/fallbacks. Run `npm run test:browser` while a production server is running; install a browser first with `npx playwright install chromium` if system Chromium is unavailable. See PROJECT_STATUS.md for exact evidence and unverified hardware/model checks.
 
 ## Deployment
 
-Import `Daniverse-dev7/senseai` into Vercel, select Next.js, and deploy the `work` branch (or merge it into your production branch). Build: `npm run build`; install: `npm ci`. No environment variables required. HTTPS is supplied by Vercel. Model access requires storage.googleapis.com, tfhub.dev and its model redirects; OCR uses cdn.jsdelivr.net and tessdata.projectnaptha.com. Verify camera permission and model/OCR downloads on the actual deployment before announcing launch. No public deployment URL has yet been verified.
+Import `Daniverse-dev7/senseai` into Vercel, select Next.js, and deploy the `work` branch (or merge it into your production branch). Build: `npm run build`; install: `npm ci`. No environment variables required. HTTPS is supplied by Vercel. Model access requires storage.googleapis.com; OCR uses cdn.jsdelivr.net. Verify camera permission and model/OCR downloads on the actual deployment before announcing launch. No public deployment URL has yet been verified.
 
 ## Resume from another computer
 

@@ -5,3 +5,5 @@ out/
 !.env.example
 *.tsbuildinfo
 .vercel/
+test-results/
+playwright-report/
