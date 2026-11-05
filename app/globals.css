@@ -1241,3 +1241,29 @@ a svg {
     min-height: 0;
   }
 }
+
+.effect-picker {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #0d1118;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.effect-picker button {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 9px 13px;
+  font-size: 12px;
+  color: #9aa9bd;
+  background: none;
+}
+.effect-picker button.selected {
+  color: #d8faff;
+  background: #1a2c36;
+  border-color: #375368;
+}
+.air-stage .magic-effects {
+  pointer-events: none;
+  z-index: 2;
+}

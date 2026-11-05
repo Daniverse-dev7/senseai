@@ -1,5 +1,8 @@
 # Next steps
 
+Current sequence: two-hand energy ball implemented and validated locally; next implement portal drawing, then camera/ink/effects video recording. Verify two-hand behavior with a physical camera after deployment.
+
+
 Test https://senseai-pi.vercel.app/air-writing after the latest main deployment. Open your hand briefly to charge; close all four fingers into a fist to launch a fireball and full-screen burst. Verify tracking loss or a writing pinch does not launch, Stop clears effects, and PNG exports only ink. The Preview full-screen burst button can demonstrate the animation without camera access.
 
 **Latest feature:** Air writing is implemented at `/air-writing`. After Vercel finishes deploying the new main commit, test one-hand tracking, pinch/release between strokes, pause, clear, undo and saved PNG on a physical webcam. Hand-model inference remains unverified here because the cloud blocks its official download host. The user supplied https://senseai-pi.vercel.app/studio; this cloud currently blocks that domain, so live deployment validation remains pending.

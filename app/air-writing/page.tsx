@@ -23,6 +23,7 @@ import {
   type Pen,
   type Point,
 } from "../../lib/air-writing";
+import { MagicRenderer } from "../../lib/magic-renderer";
 import { FireRenderer } from "../../lib/fire-renderer";
 import { appendInk, finishInk, repaintInk, type Stroke } from "../../lib/ink";
 import { cameraError } from "../../lib/vision";
@@ -31,6 +32,9 @@ export default function AirWriting() {
     canvas = useRef<HTMLCanvasElement>(null),
     cursor = useRef<HTMLDivElement>(null),
     fireCanvas = useRef<HTMLCanvasElement>(null),
+    magicCanvas = useRef<HTMLCanvasElement>(null),
+    magic = useRef<MagicRenderer | null>(null),
+    effectRef = useRef<"fire" | "energy">("fire"),
     screenFire = useRef<HTMLCanvasElement>(null),
     redoStrokes = useRef<Stroke[]>([]),
     stabilizationRef = useRef(0.6),
@@ -60,7 +64,8 @@ export default function AirWriting() {
     [brightness, setBrightness] = useState(85),
     [focus, setFocus] = useState(false),
     [aspect, setAspect] = useState(16 / 9),
-    [resolution, setResolution] = useState("HD canvas");
+    [resolution, setResolution] = useState("HD canvas"),
+    [effect, setEffect] = useState<"fire" | "energy">("fire");
   function endStroke() {
     const ctx = canvas.current?.getContext("2d");
     if (ctx && current.current) finishInk(ctx, current.current);
@@ -77,14 +82,18 @@ export default function AirWriting() {
     if (video.current) video.current.srcObject = null;
     if (cursor.current) cursor.current.style.display = "none";
     fire.current?.reset();
+    magic.current?.reset();
     endStroke();
   }
   useEffect(() => {
     const lifecycle = epoch;
     const renderer = new FireRenderer(fireCanvas.current!, screenFire.current!);
     fire.current = renderer;
+    const magicRenderer = new MagicRenderer(magicCanvas.current!);
+    magic.current = magicRenderer;
     return () => {
       renderer.destroy();
+      magicRenderer.destroy();
       lifecycle.current++;
       cancelAnimationFrame(frame.current);
       media.current?.getTracks().forEach((t) => t.stop());
@@ -168,7 +177,7 @@ export default function AirWriting() {
           delegate: "CPU",
         },
         runningMode: "VIDEO",
-        numHands: 1,
+        numHands: 2,
         minHandDetectionConfidence: 0.6,
         minHandPresenceConfidence: 0.6,
         minTrackingConfidence: 0.6,
@@ -197,15 +206,26 @@ export default function AirWriting() {
             lastTime = video.current.currentTime;
             const result = hand.detectForVideo(video.current, time);
             const pen = trackPen(
-              result.landmarks[0],
+              result.landmarks.length === 1 ? result.landmarks[0] : undefined,
               previous.current,
               stabilizationRef.current,
             );
-            if (!pausedRef.current && !manualRef.current)
-              fire.current?.update(result.landmarks[0], time);
+            if (!pausedRef.current && !manualRef.current) {
+              if (effectRef.current === "energy")
+                magic.current?.updateHands(result.landmarks, time);
+              else
+                fire.current?.update(
+                  result.landmarks.length === 1
+                    ? result.landmarks[0]
+                    : undefined,
+                  time,
+                );
+            }
             if (cursor.current) {
               cursor.current.style.display =
-                pen && !manualRef.current ? "block" : "none";
+                pen && !manualRef.current && effectRef.current !== "energy"
+                  ? "block"
+                  : "none";
               if (pen) {
                 cursor.current.style.left = `${pen.x * 100}%`;
                 cursor.current.style.top = `${pen.y * 100}%`;
@@ -216,19 +236,24 @@ export default function AirWriting() {
             }
             const mode = manualRef.current
               ? "Mouse / touch mode"
-              : pausedRef.current
-                ? "Paused · move your hand without drawing"
-                : !pen
-                  ? "No hand found · show your palm to the camera"
-                  : pen.down
-                    ? "Writing · release your pinch to lift the pen"
-                    : "Hand tracked · pinch thumb and index to write";
+              : effectRef.current === "energy" && !pausedRef.current
+                ? result.landmarks.length === 2
+                  ? "Energy ball · separate palms to grow, push both toward camera to release"
+                  : "Energy mode · show two open palms"
+                : pausedRef.current
+                  ? "Paused · move your hand without drawing"
+                  : !pen
+                    ? "No hand found · show your palm to the camera"
+                    : pen.down
+                      ? "Writing · release your pinch to lift the pen"
+                      : "Hand tracked · pinch thumb and index to write";
             if (mode !== lastMode) {
               setStatus(mode);
               lastMode = mode;
             }
             if (!manualRef.current) {
-              if (!pausedRef.current) draw(pen);
+              if (!pausedRef.current && effectRef.current !== "energy")
+                draw(pen);
               else endStroke();
             }
           }
@@ -314,6 +339,29 @@ export default function AirWriting() {
               {manual ? "MOUSE / TOUCH" : running ? "HAND TRACKING" : "STANDBY"}
             </span>
           </div>
+          <div
+            className="effect-picker"
+            role="group"
+            aria-label="Choose interaction"
+          >
+            {(["fire", "energy"] as const).map((mode) => (
+              <button
+                key={mode}
+                className={effect === mode ? "selected" : ""}
+                aria-pressed={effect === mode}
+                onClick={() => {
+                  endStroke();
+                  fire.current?.reset();
+                  magic.current?.reset();
+                  effectRef.current = mode;
+                  setEffect(mode);
+                  if (cursor.current) cursor.current.style.display = "none";
+                }}
+              >
+                {mode === "fire" ? "Writing + fire" : "Two-hand energy"}
+              </button>
+            ))}
+          </div>
           <div className="air-stage" style={{ aspectRatio: aspect }}>
             <video
               ref={video}
@@ -353,6 +401,13 @@ export default function AirWriting() {
                 pointerDown.current = false;
                 endStroke();
               }}
+            />
+            <canvas
+              ref={magicCanvas}
+              className="magic-effects"
+              width={960}
+              height={540}
+              aria-hidden="true"
             />
             <div ref={cursor} className="air-cursor" aria-hidden="true" />
             <canvas
@@ -398,6 +453,7 @@ export default function AirWriting() {
               aria-pressed={paused}
               onClick={() => {
                 fire.current?.reset();
+                magic.current?.reset();
                 pausedRef.current = !paused;
                 setPaused(!paused);
                 endStroke();
@@ -529,6 +585,7 @@ export default function AirWriting() {
               checked={manual}
               onChange={(e) => {
                 fire.current?.reset();
+                magic.current?.reset();
                 manualRef.current = e.target.checked;
                 setManual(e.target.checked);
                 endStroke();
@@ -538,16 +595,40 @@ export default function AirWriting() {
             />{" "}
             Mouse / touch drawing
           </label>
-          <h3>Open to charge. Close to launch.</h3>
-          <p className="air-note">
-            Open your hand briefly to build a flame, then close all four fingers
-            into a fist to release a fireball. It rushes toward you and bursts
-            across the whole screen with rolling fire, smoke and embers. Pinch
-            to write as before. Effects stay out of saved drawings.
-          </p>
-          <button className="button" onClick={() => fire.current?.preview()}>
-            Preview full-screen burst
-          </button>
+          {effect === "energy" ? (
+            <>
+              <h3>Shape energy with both hands</h3>
+              <p className="air-note">
+                Show two open palms to the camera. Move them apart to grow the
+                sphere, then push both palms toward the camera to release it.
+                Keep both hands visible. This uses apparent palm-size changes,
+                so move deliberately.
+              </p>
+              <button
+                className="button"
+                onClick={() => magic.current?.previewEnergy()}
+              >
+                Preview energy ball
+              </button>
+            </>
+          ) : (
+            <>
+              <h3>Open to charge. Close to launch.</h3>
+              <p className="air-note">
+                Open your hand briefly to build a flame, then close all four
+                fingers into a fist to release a fireball. It rushes toward you
+                and bursts across the whole screen with rolling fire, smoke and
+                embers. Pinch to write as before. Effects stay out of saved
+                drawings.
+              </p>
+              <button
+                className="button"
+                onClick={() => fire.current?.preview()}
+              >
+                Preview full-screen burst
+              </button>
+            </>
+          )}
           <p className="air-note">
             Preview plays the animation without using your camera.
             Reduced-motion settings soften the effect. Press Escape to dismiss.
