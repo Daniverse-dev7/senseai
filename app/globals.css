@@ -1267,3 +1267,10 @@ a svg {
   pointer-events: none;
   z-index: 2;
 }
+
+.recording-panel { border-top: 1px solid var(--border, #30343c); padding-top: 20px; margin-top: 8px; }
+.recording-panel h3 { margin-top: 0; }
+.recording-active { color: #ffaca2; border-color: #ff7465; }
+.recording-time { font-variant-numeric: tabular-nums; }
+.recorded-clip { display: grid; gap: 12px; }
+.recorded-clip video { width: 100%; border-radius: 12px; background: #0a0c10; }

@@ -23,12 +23,15 @@ import {
   type Pen,
   type Point,
 } from "../../lib/air-writing";
+import RecordingPanel from "./recording-panel";
+import { SceneRecorder } from "../../lib/scene-recorder";
 import { recognizePortal } from "../../lib/portal";
 import { MagicRenderer } from "../../lib/magic-renderer";
 import { FireRenderer } from "../../lib/fire-renderer";
 import { appendInk, finishInk, repaintInk, type Stroke } from "../../lib/ink";
 import { cameraError } from "../../lib/vision";
 export default function AirWriting() {
+  const recorder = useRef<SceneRecorder | null>(null);
   const video = useRef<HTMLVideoElement>(null),
     canvas = useRef<HTMLCanvasElement>(null),
     cursor = useRef<HTMLDivElement>(null),
@@ -95,6 +98,7 @@ export default function AirWriting() {
     }
   }
   function release() {
+    recorder.current?.stop();
     epoch.current++;
     cancelAnimationFrame(frame.current);
     media.current?.getTracks().forEach((t) => t.stop());
@@ -675,6 +679,12 @@ export default function AirWriting() {
             Preview plays the animation without using your camera.
             Reduced-motion settings soften the effect. Press Escape to dismiss.
           </p>
+          <RecordingPanel
+            video={video}
+            ink={canvas}
+            layers={[fireCanvas, magicCanvas, screenFire]}
+            recorderRef={recorder}
+          />
           <h3>Three simple steps</h3>
           <ol>
             <li>Keep one hand in frame, with good lighting.</li>
@@ -686,8 +696,8 @@ export default function AirWriting() {
             into typed text or recognize sign language.
           </p>
           <p className="air-note">
-            Processing stays in your browser. Save exports only your writing,
-            never the camera image.
+            Processing stays in your browser. PNG saves only your writing. Video
+            clips include your camera when it is active.
           </p>
         </aside>
       </div>

@@ -69,3 +69,10 @@ Added an explicit Two-hand energy mode, real MediaPipe two-hand detection, a mid
 ## Milestone 2 — Circle-to-portal drawing
 
 Added Portal drawing mode with aspect-correct closed-circle recognition using uniformly spaced stroke samples, radial error, closure, angular coverage and path length. A matching stroke becomes a seven-second swirling starfield portal with a glowing spark rim; rejected strokes stay as ink. Works with real pinch strokes or the existing pointer fallback. 23 unit tests, three energy/portal browser tests, lint, TypeScript and production build passed. Chromium actually drew a circle and invoked the production recognizer; no portal result was mocked. Video recording is the next milestone.
+
+
+## Milestone 3 — Local scene recording
+
+Added scene-only video recording that composites the mirrored active camera, ink, fire, energy and portal layers. Full-screen fire fits inside the clip. Silent clips stop after 30 seconds or 64 MB, on camera Stop, or when the tab becomes hidden; navigation disposes capture tracks. Output is up to 1280 pixels wide within a 720p pixel budget, with browser-supported WebM/MP4, playback preview and local download. No upload, microphone or screen-sharing permission is involved. Unsupported browsers show a clear fallback.
+
+Validation: 23 unit tests, TypeScript, lint and production build passed. The full 21-test browser run had one test-selector failure because Next.js also supplies an alert element; scoped the assertion to the recording panel and all three recording tests passed on rerun. Actual encoded video playback, visible effect pixels, a downloaded WebM header, unsupported-browser fallback and capture-track cleanup were verified. An intermediate rerun failed because the local server had stopped on session resume; restarted it before successful verification. Real physical-camera hand recognition and the public Vercel rollout remain unverified under the cloud network policy.
