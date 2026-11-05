@@ -22,7 +22,9 @@ Models and OCR language assets download on first use. No camera frames are uploa
 
 Open **Air Writing** from the studio or **Try air writing** on the landing page. Start hand tracking, keep one hand well lit, and pinch thumb/index together while moving your index fingertip to draw. Release your pinch between strokes. Pause, undo, clear, change pen color/width, or save a PNG containing only your writing. Mouse/touch mode is an optional fallback. This draws ink; it does not convert handwriting to typed text. The first use downloads MediaPipe WASM from cdn.jsdelivr.net and its hand model from storage.googleapis.com.
 
-Open your fist with all four fingers extended to reveal animated fire above your palm. Close your hand to extinguish it. The effect follows your hand and stays out of saved drawings.
+Open your hand briefly to charge a particle flame, then close all four fingers into a fist to launch a fireball across the camera view. It leaves an ember trail and bursts into sparks and a glowing ring. Pinching still draws. **Preview fireball effect** plays the actual animation without a camera; it does not simulate hand recognition. Reduced-motion settings soften the effect, and exports contain only your writing.
+
+![Fireball effect preview](docs/fireball-preview.png)
 
 ## Checks
 

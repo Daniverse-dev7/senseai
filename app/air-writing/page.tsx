@@ -16,19 +16,19 @@ import {
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
 import {
   trackPen,
-  openPalm,
   connects,
   type Pen,
   type Point,
 } from "../../lib/air-writing";
+import { FireRenderer } from "../../lib/fire-renderer";
 import { cameraError } from "../../lib/vision";
 type Stroke = { points: Point[]; color: string; width: number };
 export default function AirWriting() {
   const video = useRef<HTMLVideoElement>(null),
     canvas = useRef<HTMLCanvasElement>(null),
     cursor = useRef<HTMLDivElement>(null),
-    fire = useRef<HTMLDivElement>(null),
-    openFrames = useRef(0),
+    fireCanvas = useRef<HTMLCanvasElement>(null),
+    fire = useRef<FireRenderer | null>(null),
     media = useRef<MediaStream | null>(null),
     detector = useRef<HandLandmarker | null>(null),
     epoch = useRef(0),
@@ -62,13 +62,15 @@ export default function AirWriting() {
     detector.current = null;
     if (video.current) video.current.srcObject = null;
     if (cursor.current) cursor.current.style.display = "none";
-    if (fire.current) fire.current.dataset.active = "false";
-    openFrames.current = 0;
+    fire.current?.reset();
     endStroke();
   }
   useEffect(() => {
     const lifecycle = epoch;
+    const renderer = new FireRenderer(fireCanvas.current!);
+    fire.current = renderer;
     return () => {
+      renderer.destroy();
       lifecycle.current++;
       cancelAnimationFrame(frame.current);
       media.current?.getTracks().forEach((t) => t.stop());
@@ -190,18 +192,8 @@ export default function AirWriting() {
             lastTime = video.current.currentTime;
             const result = hand.detectForVideo(video.current, time);
             const pen = trackPen(result.landmarks[0], previous.current);
-            const palm =
-              !pausedRef.current && !manualRef.current
-                ? openPalm(result.landmarks[0])
-                : null;
-            openFrames.current = palm ? openFrames.current + 1 : 0;
-            if (fire.current) {
-              fire.current.dataset.active = String(openFrames.current >= 3);
-              if (palm) {
-                fire.current.style.left = `${palm.x * 100}%`;
-                fire.current.style.top = `${palm.y * 100}%`;
-              }
-            }
+            if (!pausedRef.current && !manualRef.current)
+              fire.current?.update(result.landmarks[0], time);
             if (cursor.current) {
               cursor.current.style.display =
                 pen && !manualRef.current ? "block" : "none";
@@ -374,18 +366,13 @@ export default function AirWriting() {
               }}
             />
             <div ref={cursor} className="air-cursor" aria-hidden="true" />
-            <div
-              ref={fire}
-              className="palm-fire"
-              data-active="false"
+            <canvas
+              ref={fireCanvas}
+              className="fire-effects"
+              width={960}
+              height={540}
               aria-hidden="true"
-            >
-              <span className="fire-glow" />
-              {Array.from({ length: 7 }, (_, i) => (
-                <i className={`fire-flame flame-${i}`} key={i} />
-              ))}
-              <span className="fire-core" />
-            </div>
+            />
           </div>
           <div className="camera-toolbar air-toolbar">
             <button
@@ -408,8 +395,7 @@ export default function AirWriting() {
               className="button"
               aria-pressed={paused}
               onClick={() => {
-                if (fire.current) fire.current.dataset.active = "false";
-                openFrames.current = 0;
+                fire.current?.reset();
                 pausedRef.current = !paused;
                 setPaused(!paused);
                 endStroke();
@@ -495,8 +481,7 @@ export default function AirWriting() {
               type="checkbox"
               checked={manual}
               onChange={(e) => {
-                if (fire.current) fire.current.dataset.active = "false";
-                openFrames.current = 0;
+                fire.current?.reset();
                 manualRef.current = e.target.checked;
                 setManual(e.target.checked);
                 endStroke();
@@ -506,11 +491,19 @@ export default function AirWriting() {
             />{" "}
             Mouse / touch drawing
           </label>
-          <h3>Open your hand, spark a flame</h3>
+          <h3>Open to charge. Close to launch.</h3>
           <p className="air-note">
-            Open your fist with all four fingers extended to reveal fire above
-            your palm. Close your hand to extinguish it. Pinch to keep writing.
-            The visual effect is not included in saved drawings.
+            Open your hand briefly to build a flame, then close all four fingers
+            into a fist to release a fireball. It travels across the camera view
+            and bursts into sparks. Pinch to write as before. Effects stay out
+            of saved drawings.
+          </p>
+          <button className="button" onClick={() => fire.current?.preview()}>
+            Preview fireball effect
+          </button>
+          <p className="air-note">
+            Preview plays the animation without using your camera.
+            Reduced-motion settings soften the effect.
           </p>
           <h3>Three simple steps</h3>
           <ol>
