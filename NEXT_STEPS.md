@@ -1,6 +1,6 @@
 # Next steps
 
-Current sequence: two-hand energy ball implemented and validated locally; next implement portal drawing, then camera/ink/effects video recording. Verify two-hand behavior with a physical camera after deployment.
+Current sequence: two-hand energy ball implemented and validated locally; portal drawing is now also implemented and browser-verified; next implement camera/ink/effects video recording. Verify two-hand behavior with a physical camera after deployment.
 
 
 Test https://senseai-pi.vercel.app/air-writing after the latest main deployment. Open your hand briefly to charge; close all four fingers into a fist to launch a fireball and full-screen burst. Verify tracking loss or a writing pinch does not launch, Stop clears effects, and PNG exports only ink. The Preview full-screen burst button can demonstrate the animation without camera access.

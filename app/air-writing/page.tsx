@@ -23,6 +23,7 @@ import {
   type Pen,
   type Point,
 } from "../../lib/air-writing";
+import { recognizePortal } from "../../lib/portal";
 import { MagicRenderer } from "../../lib/magic-renderer";
 import { FireRenderer } from "../../lib/fire-renderer";
 import { appendInk, finishInk, repaintInk, type Stroke } from "../../lib/ink";
@@ -34,7 +35,7 @@ export default function AirWriting() {
     fireCanvas = useRef<HTMLCanvasElement>(null),
     magicCanvas = useRef<HTMLCanvasElement>(null),
     magic = useRef<MagicRenderer | null>(null),
-    effectRef = useRef<"fire" | "energy">("fire"),
+    effectRef = useRef<"fire" | "energy" | "portal">("fire"),
     screenFire = useRef<HTMLCanvasElement>(null),
     redoStrokes = useRef<Stroke[]>([]),
     stabilizationRef = useRef(0.6),
@@ -65,12 +66,33 @@ export default function AirWriting() {
     [focus, setFocus] = useState(false),
     [aspect, setAspect] = useState(16 / 9),
     [resolution, setResolution] = useState("HD canvas"),
-    [effect, setEffect] = useState<"fire" | "energy">("fire");
+    [effect, setEffect] = useState<"fire" | "energy" | "portal">("fire");
   function endStroke() {
     const ctx = canvas.current?.getContext("2d");
     if (ctx && current.current) finishInk(ctx, current.current);
+    const finished = current.current;
     previous.current = null;
     current.current = null;
+    if (
+      finished &&
+      effectRef.current === "portal" &&
+      finished.points.length >= 16
+    ) {
+      const shape = recognizePortal(
+        finished.points,
+        canvas.current!.width / canvas.current!.height,
+      );
+      if (shape) {
+        strokes.current = strokes.current.filter((s) => s !== finished);
+        setCount(strokes.current.length);
+        redraw();
+        magic.current?.openPortal(shape);
+        setStatus("Portal opened from your circle · Escape closes it");
+      } else
+        setStatus(
+          "Try a closed, round loop. Keep pinching until you finish the circle.",
+        );
+    }
   }
   function release() {
     epoch.current++;
@@ -213,7 +235,7 @@ export default function AirWriting() {
             if (!pausedRef.current && !manualRef.current) {
               if (effectRef.current === "energy")
                 magic.current?.updateHands(result.landmarks, time);
-              else
+              else if (effectRef.current === "fire")
                 fire.current?.update(
                   result.landmarks.length === 1
                     ? result.landmarks[0]
@@ -344,7 +366,7 @@ export default function AirWriting() {
             role="group"
             aria-label="Choose interaction"
           >
-            {(["fire", "energy"] as const).map((mode) => (
+            {(["fire", "energy", "portal"] as const).map((mode) => (
               <button
                 key={mode}
                 className={effect === mode ? "selected" : ""}
@@ -358,7 +380,11 @@ export default function AirWriting() {
                   if (cursor.current) cursor.current.style.display = "none";
                 }}
               >
-                {mode === "fire" ? "Writing + fire" : "Two-hand energy"}
+                {mode === "fire"
+                  ? "Writing + fire"
+                  : mode === "energy"
+                    ? "Two-hand energy"
+                    : "Portal drawing"}
               </button>
             ))}
           </div>
@@ -595,7 +621,23 @@ export default function AirWriting() {
             />{" "}
             Mouse / touch drawing
           </label>
-          {effect === "energy" ? (
+          {effect === "portal" ? (
+            <>
+              <h3>Draw a doorway to somewhere else</h3>
+              <p className="air-note">
+                Pinch and draw one closed circle, then release to open a portal
+                at that spot. Mouse / touch mode also works. A round loop
+                becomes a portal; other strokes remain as ink. Portals fade
+                after seven seconds.
+              </p>
+              <button
+                className="button"
+                onClick={() => magic.current?.previewPortal()}
+              >
+                Preview portal
+              </button>
+            </>
+          ) : effect === "energy" ? (
             <>
               <h3>Shape energy with both hands</h3>
               <p className="air-note">

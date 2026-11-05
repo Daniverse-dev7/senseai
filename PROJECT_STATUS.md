@@ -65,3 +65,7 @@ Validation: 17 unit tests and the complete 15-test Chromium suite passed, includ
 ## Milestone 1 — Two-hand energy ball
 
 Added an explicit Two-hand energy mode, real MediaPipe two-hand detection, a midpoint-following plasma sphere that grows with hand separation, and a debounced release based on both palms growing in the image. Hand loss and separation alone do not release it. The labeled preview renders the real sphere without claiming live recognition. 20 unit tests, lint, TypeScript and production build passed; the energy preview/browser cleanup check passed. Physical two-hand recognition remains unverified under the cloud model-host restriction. Portal drawing and video recording are the next milestones.
+
+## Milestone 2 — Circle-to-portal drawing
+
+Added Portal drawing mode with aspect-correct closed-circle recognition using uniformly spaced stroke samples, radial error, closure, angular coverage and path length. A matching stroke becomes a seven-second swirling starfield portal with a glowing spark rim; rejected strokes stay as ink. Works with real pinch strokes or the existing pointer fallback. 23 unit tests, three energy/portal browser tests, lint, TypeScript and production build passed. Chromium actually drew a circle and invoked the production recognizer; no portal result was mocked. Video recording is the next milestone.
