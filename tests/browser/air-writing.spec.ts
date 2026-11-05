@@ -18,8 +18,9 @@ test("manual fallback draws real canvas ink, pauses, undoes, clears and exports"
   ).toBeVisible();
   await page.getByLabel("Mouse / touch drawing").check();
   const canvas = page.getByLabel("Air writing drawing canvas");
-  const box = (await canvas.boundingBox())!;
   async function stroke() {
+    await canvas.scrollIntoViewIfNeeded();
+    const box = (await canvas.boundingBox())!;
     await page.mouse.move(box.x + 100, box.y + 90);
     await page.mouse.down();
     await page.mouse.move(box.x + 200, box.y + 150, { steps: 12 });

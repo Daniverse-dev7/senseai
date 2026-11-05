@@ -45,3 +45,5 @@ The implementation checkpoint is the commit containing this entry; verify local 
 ## Open-palm fire animation
 
 Added animated flames that follow the mirrored palm when all four fingers are extended. Three consecutive tracked frames activate the effect; closing the hand, tracking loss, pause, manual mode and Stop turn it off. Pinching remains reserved for drawing. Flames are an overlay and do not appear in PNG exports; reduced-motion preferences disable flicker. Open/closed hand, pinch and rotation unit tests passed (12 total); lint, TypeScript and production build passed. Actual webcam gesture validation remains pending because the cloud blocks the hand-model download.
+
+Fire-update regression: all four air-writing browser checks passed (drawing/export/pause/undo/clear, denied permission, cancellation and model failure cleanup). Physical hand gesture behavior remains unverified in this environment.

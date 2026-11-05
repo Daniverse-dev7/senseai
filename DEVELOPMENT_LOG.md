@@ -25,3 +25,5 @@ Canvas history supports undo, clear, color/width changes and PNG export of ink o
 ## Open-palm fire animation
 
 Added animated flames that follow the mirrored palm when all four fingers are extended. Three consecutive tracked frames activate the effect; closing the hand, tracking loss, pause, manual mode and Stop turn it off. Pinching remains reserved for drawing. Flames are an overlay and do not appear in PNG exports; reduced-motion preferences disable flicker. Open/closed hand, pinch and rotation unit tests passed (12 total); lint, TypeScript and production build passed. Actual webcam gesture validation remains pending because the cloud blocks the hand-model download.
+
+The fire update's four air-writing browser checks passed after correcting a test fixture to remeasure the canvas following page scrolling. The added instructions made the panel taller; cached screen coordinates no longer pointed at the canvas after clicking Undo. No app assertion was disabled.
