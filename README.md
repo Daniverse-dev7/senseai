@@ -63,3 +63,7 @@ Fire now builds a textured hot core while charging, with a growing turbulent pro
 - **Living drawings:** draw any sketch, then hold one open palm for a moment, or click Bring drawing to life. A glowing copy flies and follows your visible palm for ten seconds. The original ink remains available for PNG export. This animates your actual ink rather than recognizing its subject. Preview butterfly is a clearly labeled built-in example.
 
 All three effects are local canvas layers included in video recordings. Stop, pause, mode changes, Escape, visibility loss and navigation clear the effects. Reduced motion softens movement. Webcam gesture accuracy and real-device performance still require physical testing; the effects are stylized, not photorealistic simulation.
+
+### Smoother writing
+
+Air writing now uses a time-aware adaptive pen filter: small hand jitter gets more smoothing while faster movement raises responsiveness. The Stroke stabilization slider controls the tradeoff; start around 60%, lower it for quick sketching, or raise it for steadier lettering. Pinch release lifts immediately, and tracking gaps break the stroke rather than drawing a bridge. A temporary live tip fills the gap between the smooth curve and the latest pen position, then commits on lift. It also appears in video recordings. Mouse/touch/stylus input consumes coalesced pointer samples where supported and includes the final release position. Real webcam feel still depends on lighting, visibility and device performance.

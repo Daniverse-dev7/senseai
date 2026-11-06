@@ -8,6 +8,8 @@ lib/energy-gesture.ts handles two-palm release; lib/portal.ts recognizes closed 
 
 lib/element-gesture.ts gates lightning and ice gestures; lib/element-renderer.ts owns lightning, frost shards and animated ink copies. Living drawings animate user ink without claiming shape recognition. Include the element canvas in scene recordings.
 
+lib/smooth-pen.ts provides timestamp-aware adaptive pen filtering with immediate lift and gap resets. The temporary ink-tip canvas must clear/commit at stroke end and remain included in recordings.
+
 Use strict TypeScript. Never fabricate detections, OCR output, scene reasoning, deployment URLs or test outcomes. Never send secrets to client JavaScript. Preserve camera cleanup, inference serialization and permission fallback behavior.
 
 Run npm test, npm run typecheck, npm run lint and npm run build. Browser tests must distinguish mocked camera control tests from real model inference. Check permission failures, resource cleanup, OCR, speech fallback and responsive layout.

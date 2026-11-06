@@ -17,14 +17,10 @@ import {
   ScanEye,
 } from "lucide-react";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
-import {
-  trackPen,
-  connects,
-  type Pen,
-  type Point,
-} from "../../lib/air-writing";
+import { connects, type Pen, type Point } from "../../lib/air-writing";
 import RecordingPanel from "./recording-panel";
 import { SceneRecorder } from "../../lib/scene-recorder";
+import { SmoothPen } from "../../lib/smooth-pen";
 import { ElementRenderer } from "../../lib/element-renderer";
 import { openPalm } from "../../lib/air-writing";
 type Effect = "fire" | "energy" | "portal" | "lightning" | "ice" | "living";
@@ -34,6 +30,8 @@ import { FireRenderer } from "../../lib/fire-renderer";
 import { appendInk, finishInk, repaintInk, type Stroke } from "../../lib/ink";
 import { cameraError } from "../../lib/vision";
 export default function AirWriting() {
+  const smoothPen = useRef(new SmoothPen());
+  const tipCanvas = useRef<HTMLCanvasElement>(null);
   const elements = useRef<ElementRenderer | null>(null);
   const elementCanvas = useRef<HTMLCanvasElement>(null);
   const livingHeld = useRef<number | null>(null);
@@ -77,6 +75,8 @@ export default function AirWriting() {
     [resolution, setResolution] = useState("HD canvas"),
     [effect, setEffect] = useState<Effect>("fire");
   function endStroke() {
+    const tip = tipCanvas.current;
+    tip?.getContext("2d")?.clearRect(0, 0, tip.width, tip.height);
     const ctx = canvas.current?.getContext("2d");
     if (ctx && current.current) finishInk(ctx, current.current);
     const finished = current.current;
@@ -105,6 +105,7 @@ export default function AirWriting() {
   }
   function release() {
     recorder.current?.stop();
+    smoothPen.current.reset();
     epoch.current++;
     cancelAnimationFrame(frame.current);
     media.current?.getTracks().forEach((t) => t.stop());
@@ -117,6 +118,7 @@ export default function AirWriting() {
     magic.current?.reset();
     elements.current?.reset();
     livingHeld.current = null;
+    smoothPen.current.reset();
     endStroke();
   }
   useEffect(() => {
@@ -145,6 +147,13 @@ export default function AirWriting() {
   }
   function draw(next: Pen | null) {
     const previousPoint = previous.current;
+    if (
+      next?.down &&
+      previousPoint?.down &&
+      current.current &&
+      Math.hypot(next.x - previousPoint.x, next.y - previousPoint.y) < 0.00001
+    )
+      return;
     if (!next?.down) {
       endStroke();
       previous.current = next;
@@ -159,7 +168,17 @@ export default function AirWriting() {
       setCount(strokes.current.length);
     } else current.current?.points.push({ x: next.x, y: next.y });
     const ctx = canvas.current?.getContext("2d");
-    if (ctx && current.current) appendInk(ctx, current.current);
+    if (ctx && current.current) {
+      appendInk(ctx, current.current);
+      const tip = tipCanvas.current!;
+      if (tip.width !== ctx.canvas.width || tip.height !== ctx.canvas.height) {
+        tip.width = ctx.canvas.width;
+        tip.height = ctx.canvas.height;
+      }
+      const tail = tip.getContext("2d")!;
+      tail.clearRect(0, 0, tip.width, tip.height);
+      finishInk(tail, current.current);
+    }
     previous.current = next;
   }
   async function start() {
@@ -242,9 +261,9 @@ export default function AirWriting() {
             lastFrame = time;
             lastTime = video.current.currentTime;
             const result = hand.detectForVideo(video.current, time);
-            const pen = trackPen(
+            const pen = smoothPen.current.update(
               result.landmarks.length === 1 ? result.landmarks[0] : undefined,
-              previous.current,
+              time,
               stabilizationRef.current,
             );
             if (!pausedRef.current && !manualRef.current) {
@@ -347,11 +366,14 @@ export default function AirWriting() {
     const ctx = canvas.current?.getContext("2d");
     if (ctx) repaintInk(ctx, strokes.current);
   }
-  function point(e: PointerEvent<HTMLCanvasElement>) {
+  function point(
+    e: PointerEvent<HTMLCanvasElement>,
+    sample: { clientX: number; clientY: number } = e,
+  ) {
     const r = e.currentTarget.getBoundingClientRect();
     return {
-      x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)),
-      y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)),
+      x: Math.max(0, Math.min(1, (sample.clientX - r.left) / r.width)),
+      y: Math.max(0, Math.min(1, (sample.clientY - r.top) / r.height)),
       down: true,
     };
   }
@@ -428,6 +450,7 @@ export default function AirWriting() {
                   magic.current?.reset();
                   elements.current?.reset();
                   livingHeld.current = null;
+                  smoothPen.current.reset();
                   effectRef.current = mode;
                   setEffect(mode);
                   if (cursor.current) cursor.current.style.display = "none";
@@ -476,9 +499,14 @@ export default function AirWriting() {
                 draw(point(e));
               }}
               onPointerMove={(e) => {
-                if (manual && pointerDown.current && !paused) draw(point(e));
+                if (manual && pointerDown.current && !paused) {
+                  const samples = e.nativeEvent.getCoalescedEvents?.() || [];
+                  for (const sample of samples) draw(point(e, sample));
+                  draw(point(e));
+                }
               }}
-              onPointerUp={() => {
+              onPointerUp={(e) => {
+                if (manual && pointerDown.current && !paused) draw(point(e));
                 pointerDown.current = false;
                 endStroke();
               }}
@@ -486,6 +514,13 @@ export default function AirWriting() {
                 pointerDown.current = false;
                 endStroke();
               }}
+            />
+            <canvas
+              ref={tipCanvas}
+              className="ink-tip"
+              width={1920}
+              height={1080}
+              aria-hidden="true"
             />
             <canvas
               ref={magicCanvas}
@@ -548,6 +583,7 @@ export default function AirWriting() {
                 magic.current?.reset();
                 elements.current?.reset();
                 livingHeld.current = null;
+                smoothPen.current.reset();
                 pausedRef.current = !paused;
                 setPaused(!paused);
                 endStroke();
@@ -682,6 +718,7 @@ export default function AirWriting() {
                 magic.current?.reset();
                 elements.current?.reset();
                 livingHeld.current = null;
+                smoothPen.current.reset();
                 manualRef.current = e.target.checked;
                 setManual(e.target.checked);
                 endStroke();
@@ -793,7 +830,13 @@ export default function AirWriting() {
           <RecordingPanel
             video={video}
             ink={canvas}
-            layers={[fireCanvas, magicCanvas, elementCanvas, screenFire]}
+            layers={[
+              tipCanvas,
+              fireCanvas,
+              magicCanvas,
+              elementCanvas,
+              screenFire,
+            ]}
             recorderRef={recorder}
           />
           <h3>Three simple steps</h3>
