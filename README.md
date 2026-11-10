@@ -67,3 +67,7 @@ All three effects are local canvas layers included in video recordings. Stop, pa
 ### Smoother writing
 
 Air writing now uses a time-aware adaptive pen filter: small hand jitter gets more smoothing while faster movement raises responsiveness. The Stroke stabilization slider controls the tradeoff; start around 60%, lower it for quick sketching, or raise it for steadier lettering. Pinch release lifts immediately, and tracking gaps break the stroke rather than drawing a bridge. A temporary live tip fills the gap between the smooth curve and the latest pen position, then commits on lift. It also appears in video recordings. Mouse/touch/stylus input consumes coalesced pointer samples where supported and includes the final release position. Real webcam feel still depends on lighting, visibility and device performance.
+
+### Continuous strokes and tracking recovery
+
+The pen now freezes at its last position for at most 90 ms during a brief tracking dropout. It resumes the same stroke only if the hand returns close to the previous position. Longer loss, large jumps and distant returns lift the pen, avoiding connecting lines. Borderline pinch-release flicker is held for at most 45 ms without drawing new ink; a clear opening or substantial movement ends the stroke. Active ink is rendered as one continuous path and committed once on lift, avoiding seams from overlapping short segments. Original writing and effects remain separate. These safeguards are tested with synthetic tracking sequences; physical webcam behavior still requires real-device verification.

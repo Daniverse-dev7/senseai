@@ -51,3 +51,37 @@ test("zero stabilization preserves raw coordinates and pinch hysteresis", () => 
   f.reset();
   assert.equal(f.update(hand(0.43, 0.15), 99, 0)?.down, false);
 });
+
+test("brief tracking dropout freezes ink and resumes only near the last point", () => {
+  const f = new SmoothPen();
+  const initial = f.update(hand(0.5), 0)!;
+  assert.deepEqual(f.update(undefined, 33), initial);
+  assert.equal(f.update(hand(0.51), 66)?.down, true);
+  f.update(undefined, 99);
+  assert.equal(f.update(hand(0.65), 132)?.down, false);
+  assert.equal(f.update(hand(0.65), 165)?.down, true);
+});
+test("long loss and large jumps lift instead of connecting unrelated positions", () => {
+  const f = new SmoothPen();
+  f.update(hand(0.4), 0);
+  assert.equal(f.update(undefined, 100), null);
+  f.update(hand(0.4), 130);
+  assert.equal(f.update(hand(0.65), 163)?.down, false);
+});
+test("borderline pinch flicker holds the tip but a deliberate lift is immediate", () => {
+  const f = new SmoothPen();
+  const first = f.update(hand(0.5), 0)!;
+  assert.deepEqual(f.update(hand(0.52, 0.19), 33), first);
+  assert.equal(f.update(hand(0.51, 0.04), 66)?.down, true);
+  assert.equal(f.update(hand(0.52, 0.25), 99)?.down, false);
+  f.update(hand(0.5), 132);
+  f.update(hand(0.5, 0.19), 165);
+  assert.equal(f.update(hand(0.5, 0.19), 231)?.down, false);
+});
+
+test("movement during ambiguous release cannot reconnect across letters", () => {
+  const f = new SmoothPen();
+  f.update(hand(0.5), 0);
+  f.update(hand(0.51, 0.19), 33);
+  assert.equal(f.update(hand(0.6), 66)?.down, false);
+});

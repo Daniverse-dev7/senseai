@@ -27,7 +27,7 @@ type Effect = "fire" | "energy" | "portal" | "lightning" | "ice" | "living";
 import { recognizePortal } from "../../lib/portal";
 import { MagicRenderer } from "../../lib/magic-renderer";
 import { FireRenderer } from "../../lib/fire-renderer";
-import { appendInk, finishInk, repaintInk, type Stroke } from "../../lib/ink";
+import { drawInk, repaintInk, type Stroke } from "../../lib/ink";
 import { cameraError } from "../../lib/vision";
 export default function AirWriting() {
   const smoothPen = useRef(new SmoothPen());
@@ -78,7 +78,7 @@ export default function AirWriting() {
     const tip = tipCanvas.current;
     tip?.getContext("2d")?.clearRect(0, 0, tip.width, tip.height);
     const ctx = canvas.current?.getContext("2d");
-    if (ctx && current.current) finishInk(ctx, current.current);
+    if (ctx && current.current) drawInk(ctx, current.current);
     const finished = current.current;
     previous.current = null;
     current.current = null;
@@ -159,7 +159,7 @@ export default function AirWriting() {
       previous.current = next;
       return;
     }
-    if (!connects(previousPoint, next)) {
+    if (!current.current || !connects(previousPoint, next)) {
       endStroke();
       redoStrokes.current = [];
       setRedoCount(0);
@@ -169,7 +169,6 @@ export default function AirWriting() {
     } else current.current?.points.push({ x: next.x, y: next.y });
     const ctx = canvas.current?.getContext("2d");
     if (ctx && current.current) {
-      appendInk(ctx, current.current);
       const tip = tipCanvas.current!;
       if (tip.width !== ctx.canvas.width || tip.height !== ctx.canvas.height) {
         tip.width = ctx.canvas.width;
@@ -177,7 +176,7 @@ export default function AirWriting() {
       }
       const tail = tip.getContext("2d")!;
       tail.clearRect(0, 0, tip.width, tip.height);
-      finishInk(tail, current.current);
+      drawInk(tail, current.current);
     }
     previous.current = next;
   }
@@ -364,7 +363,11 @@ export default function AirWriting() {
   }
   function redraw() {
     const ctx = canvas.current?.getContext("2d");
-    if (ctx) repaintInk(ctx, strokes.current);
+    if (ctx)
+      repaintInk(
+        ctx,
+        strokes.current.filter((stroke) => stroke !== current.current),
+      );
   }
   function point(
     e: PointerEvent<HTMLCanvasElement>,

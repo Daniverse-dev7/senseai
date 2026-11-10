@@ -27,7 +27,13 @@ test("live stroke tip reaches the pointer and commits cleanly on lift", async ({
         .data.some((v, i) => i % 4 === 3 && v > 0);
     }),
   ).toBe(true);
+  const livePixels = await tip.evaluate((el) =>
+    (el as HTMLCanvasElement).toDataURL(),
+  );
   await page.mouse.up();
+  expect(
+    await ink.evaluate((el) => (el as HTMLCanvasElement).toDataURL()),
+  ).toBe(livePixels);
   expect(
     await tip.evaluate((el) => {
       const c = el as HTMLCanvasElement;

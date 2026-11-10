@@ -44,23 +44,29 @@ export function finishInk(ctx: CanvasRenderingContext2D, s: Stroke) {
 }
 export function repaintInk(ctx: CanvasRenderingContext2D, strokes: Stroke[]) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  for (const s of strokes) {
-    style(ctx, s);
-    const w = ctx.canvas.width,
-      h = ctx.canvas.height;
-    ctx.beginPath();
-    ctx.moveTo(s.points[0].x * w, s.points[0].y * h);
-    for (let i = 1; i < s.points.length; i++) {
-      const end = mid(s.points[i - 1], s.points[i]);
-      ctx.quadraticCurveTo(
-        s.points[i - 1].x * w,
-        s.points[i - 1].y * h,
-        end.x * w,
-        end.y * h,
-      );
-    }
-    ctx.lineTo(s.points.at(-1)!.x * w, s.points.at(-1)!.y * h);
-    ctx.stroke();
-    if (s.points.length === 1) appendInk(ctx, s);
+  for (const s of strokes) drawInk(ctx, s);
+}
+/** One continuous path avoids dark seams between independently stroked segments. */
+export function drawInk(ctx: CanvasRenderingContext2D, s: Stroke) {
+  if (!s.points.length) return;
+  style(ctx, s);
+  const w = ctx.canvas.width,
+    h = ctx.canvas.height;
+  if (s.points.length === 1) {
+    appendInk(ctx, s);
+    return;
   }
+  ctx.beginPath();
+  ctx.moveTo(s.points[0].x * w, s.points[0].y * h);
+  for (let i = 1; i < s.points.length; i++) {
+    const end = mid(s.points[i - 1], s.points[i]);
+    ctx.quadraticCurveTo(
+      s.points[i - 1].x * w,
+      s.points[i - 1].y * h,
+      end.x * w,
+      end.y * h,
+    );
+  }
+  ctx.lineTo(s.points.at(-1)!.x * w, s.points.at(-1)!.y * h);
+  ctx.stroke();
 }

@@ -1,5 +1,7 @@
 # Next steps
 
+Latest continuity fix: bounded tracking-dropout recovery, borderline-pinch debounce, forced lifts after distant returns, and one continuous active ink path. Test whether the reported unexpected breaks/connections are resolved on the user’s real webcam.
+
 Newest writing update: time-aware adaptive filtering, live stroke tip, and coalesced pointer samples. Verify slow lettering, fast curves, pinch/lift transitions and camera frame drops on real hardware. Start stabilization at 60%; test lower and higher settings.
 
 Newest modes: Lightning, Freeze + shatter, Living drawings. Verify two-palm linking and one-fist release on a real webcam, frost sweep/close/thrust, palm-following of actual ink, reduced motion and recordings on desktop/mobile after Vercel deploys.

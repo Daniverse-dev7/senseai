@@ -205,7 +205,8 @@ test("particle preview charges, releases and bursts without changing saved ink",
     }),
   ).toBeGreaterThan(100);
   await page.screenshot({ path: "/tmp/senseai-screen-burst.png" });
-  await expect(effects).toHaveAttribute("data-phase", "idle");
+  // Particle simulation caps frame steps, so slow CI renderers take longer to settle.
+  await expect(effects).toHaveAttribute("data-phase", "idle", { timeout: 15000 });
   expect(await inkPixels(page)).toBe(0);
   await expect(screen).toHaveAttribute("data-phase", "idle");
   await expect(
