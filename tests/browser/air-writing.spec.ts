@@ -19,7 +19,7 @@ test("manual fallback draws real canvas ink, pauses, undoes, clears and exports"
 }) => {
   await page.goto("/air-writing");
   await expect(
-    page.getByRole("heading", { name: "Write in the air." }),
+    page.getByRole("heading", { name: "Create beyond the keyboard." }),
   ).toBeVisible();
   await page.getByLabel("Mouse / touch drawing").check();
   const canvas = page.getByLabel("Air writing drawing canvas");
@@ -157,6 +157,9 @@ test("particle preview charges, releases and bursts without changing saved ink",
   page,
 }) => {
   await page.goto("/air-writing");
+  await page
+    .getByRole("button", { name: "Writing + fire", exact: true })
+    .click();
   const effects = page.locator(".fire-effects");
   await expect(effects).toHaveAttribute("data-phase", "idle");
   await page.getByRole("button", { name: "Preview full-screen burst" }).click();
@@ -206,7 +209,9 @@ test("particle preview charges, releases and bursts without changing saved ink",
   ).toBeGreaterThan(100);
   await page.screenshot({ path: "/tmp/senseai-screen-burst.png" });
   // Particle simulation caps frame steps, so slow CI renderers take longer to settle.
-  await expect(effects).toHaveAttribute("data-phase", "idle", { timeout: 15000 });
+  await expect(effects).toHaveAttribute("data-phase", "idle", {
+    timeout: 15000,
+  });
   expect(await inkPixels(page)).toBe(0);
   await expect(screen).toHaveAttribute("data-phase", "idle");
   await expect(
@@ -221,6 +226,9 @@ test("reduced-motion preview completes and navigating away cleans up", async ({
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/air-writing");
+  await page
+    .getByRole("button", { name: "Writing + fire", exact: true })
+    .click();
   await page.getByRole("button", { name: "Preview full-screen burst" }).click();
   await expect(page.locator(".fire-effects")).toHaveAttribute(
     "data-phase",
@@ -240,6 +248,9 @@ test("full-screen burst adapts to mobile and Escape immediately clears it", asyn
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/air-writing");
+  await page
+    .getByRole("button", { name: "Writing + fire", exact: true })
+    .click();
   await page.getByRole("button", { name: "Preview full-screen burst" }).click();
   const screen = page.locator(".screen-fire-effects");
   await expect(screen).toHaveAttribute("data-phase", "burst");

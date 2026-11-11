@@ -1,5 +1,7 @@
 # Next steps
 
+Latest: Writing mode is the default; all gesture effects remain available. Try Continuous pen control for pinch-independent lettering, then recognize clear English handwriting, review the result and apply a text style. Verify freehand OCR accuracy and camera continuity on physical devices; automated OCR testing uses controlled printed glyphs.
+
 Latest continuity fix: bounded tracking-dropout recovery, borderline-pinch debounce, forced lifts after distant returns, and one continuous active ink path. Test whether the reported unexpected breaks/connections are resolved on the user’s real webcam.
 
 Newest writing update: time-aware adaptive filtering, live stroke tip, and coalesced pointer samples. Verify slow lettering, fast curves, pinch/lift transitions and camera frame drops on real hardware. Start stabilization at 60%; test lower and higher settings.

@@ -20,6 +20,7 @@ export class SmoothPen {
     points: Point[] | undefined,
     time: number,
     stabilization = 0.6,
+    penDown?: boolean,
   ): Pen | null {
     if (!Number.isFinite(time)) {
       this.reset();
@@ -39,6 +40,7 @@ export class SmoothPen {
     }
     const next = {
       ...detected,
+      down: penDown ?? detected.down,
       x: Math.max(0, Math.min(1, 1 - points![8].x)),
       y: Math.max(0, Math.min(1, points![8].y)),
     };
@@ -48,7 +50,7 @@ export class SmoothPen {
       Math.hypot(next.x - this.raw.x, next.y - this.raw.y) > 0.025;
     this.missing = false;
     // Brief uncertainty near the lift threshold freezes the tip, rather than cutting the stroke.
-    if (this.filtered?.down && !next.down) {
+    if (penDown === undefined && this.filtered?.down && !next.down) {
       const palm = Math.hypot(
         points![0].x - points![9].x,
         points![0].y - points![9].y,

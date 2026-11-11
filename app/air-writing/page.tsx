@@ -18,18 +18,26 @@ import {
 } from "lucide-react";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
 import { connects, type Pen, type Point } from "../../lib/air-writing";
+import TextPanel from "./text-panel";
 import RecordingPanel from "./recording-panel";
 import { SceneRecorder } from "../../lib/scene-recorder";
 import { SmoothPen } from "../../lib/smooth-pen";
 import { ElementRenderer } from "../../lib/element-renderer";
 import { openPalm } from "../../lib/air-writing";
-type Effect = "fire" | "energy" | "portal" | "lightning" | "ice" | "living";
+type Effect =
+  "writing" | "fire" | "energy" | "portal" | "lightning" | "ice" | "living";
 import { recognizePortal } from "../../lib/portal";
 import { MagicRenderer } from "../../lib/magic-renderer";
 import { FireRenderer } from "../../lib/fire-renderer";
 import { drawInk, repaintInk, type Stroke } from "../../lib/ink";
 import { cameraError } from "../../lib/vision";
 export default function AirWriting() {
+  const [styledActive, setStyledActive] = useState(false);
+  const styledCanvas = useRef<HTMLCanvasElement>(null);
+  const continuousRef = useRef(false),
+    penDownRef = useRef(false);
+  const [continuous, setContinuous] = useState(false),
+    [penDown, setPenDown] = useState(false);
   const smoothPen = useRef(new SmoothPen());
   const tipCanvas = useRef<HTMLCanvasElement>(null);
   const elements = useRef<ElementRenderer | null>(null);
@@ -42,7 +50,7 @@ export default function AirWriting() {
     fireCanvas = useRef<HTMLCanvasElement>(null),
     magicCanvas = useRef<HTMLCanvasElement>(null),
     magic = useRef<MagicRenderer | null>(null),
-    effectRef = useRef<Effect>("fire"),
+    effectRef = useRef<Effect>("writing"),
     screenFire = useRef<HTMLCanvasElement>(null),
     redoStrokes = useRef<Stroke[]>([]),
     stabilizationRef = useRef(0.6),
@@ -55,7 +63,7 @@ export default function AirWriting() {
     previous = useRef<Pen | null>(null),
     strokes = useRef<Stroke[]>([]),
     current = useRef<Stroke | null>(null),
-    ink = useRef({ color: "#bcf77b", width: 7 }),
+    ink = useRef({ color: "#dce9ff", width: 7 }),
     manualRef = useRef(false),
     pointerDown = useRef(false);
   const [running, setRunning] = useState(false),
@@ -65,7 +73,7 @@ export default function AirWriting() {
     [status, setStatus] = useState("Ready to write"),
     [error, setError] = useState(""),
     [count, setCount] = useState(0),
-    [color, setColor] = useState("#bcf77b"),
+    [color, setColor] = useState("#dce9ff"),
     [width, setWidth] = useState(7),
     [redoCount, setRedoCount] = useState(0),
     [stabilization, setStabilization] = useState(0.6),
@@ -73,7 +81,7 @@ export default function AirWriting() {
     [focus, setFocus] = useState(false),
     [aspect, setAspect] = useState(16 / 9),
     [resolution, setResolution] = useState("HD canvas"),
-    [effect, setEffect] = useState<Effect>("fire");
+    [effect, setEffect] = useState<Effect>("writing");
   function endStroke() {
     const tip = tipCanvas.current;
     tip?.getContext("2d")?.clearRect(0, 0, tip.width, tip.height);
@@ -104,6 +112,8 @@ export default function AirWriting() {
     }
   }
   function release() {
+    penDownRef.current = false;
+    setPenDown(false);
     recorder.current?.stop();
     smoothPen.current.reset();
     epoch.current++;
@@ -146,6 +156,12 @@ export default function AirWriting() {
     setStatus("Camera stopped · your writing is kept");
   }
   function draw(next: Pen | null) {
+    if (next?.down && styledCanvas.current?.dataset.active === "true") {
+      const c = styledCanvas.current;
+      c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
+      c.dataset.active = "false";
+      setStyledActive(false);
+    }
     const previousPoint = previous.current;
     if (
       next?.down &&
@@ -264,6 +280,7 @@ export default function AirWriting() {
               result.landmarks.length === 1 ? result.landmarks[0] : undefined,
               time,
               stabilizationRef.current,
+              continuousRef.current ? penDownRef.current : undefined,
             );
             if (!pausedRef.current && !manualRef.current) {
               if (["lightning", "ice", "living"].includes(effectRef.current)) {
@@ -315,17 +332,23 @@ export default function AirWriting() {
             }
             const mode = manualRef.current
               ? "Mouse / touch mode"
-              : effectRef.current === "energy" && !pausedRef.current
-                ? result.landmarks.length === 2
-                  ? "Energy ball · separate palms to grow, push both toward camera to release"
-                  : "Energy mode · show two open palms"
-                : pausedRef.current
-                  ? "Paused · move your hand without drawing"
-                  : !pen
-                    ? "No hand found · show your palm to the camera"
-                    : pen.down
-                      ? "Writing · release your pinch to lift the pen"
-                      : "Hand tracked · pinch thumb and index to write";
+              : effectRef.current === "writing" &&
+                  continuousRef.current &&
+                  !pausedRef.current
+                ? penDownRef.current
+                  ? "Continuous pen down · use Lift pen or Pause to stop writing"
+                  : "Continuous pen lifted · choose Put pen down to write"
+                : effectRef.current === "energy" && !pausedRef.current
+                  ? result.landmarks.length === 2
+                    ? "Energy ball · separate palms to grow, push both toward camera to release"
+                    : "Energy mode · show two open palms"
+                  : pausedRef.current
+                    ? "Paused · move your hand without drawing"
+                    : !pen
+                      ? "No hand found · show your palm to the camera"
+                      : pen.down
+                        ? "Writing · release your pinch to lift the pen"
+                        : "Hand tracked · pinch thumb and index to write";
             if (mode !== lastMode) {
               setStatus(mode);
               lastMode = mode;
@@ -388,7 +411,13 @@ export default function AirWriting() {
     const ctx = output.getContext("2d")!;
     ctx.fillStyle = "#0a0c10";
     ctx.fillRect(0, 0, output.width, output.height);
-    ctx.drawImage(canvas.current!, 0, 0);
+    ctx.drawImage(
+      styledCanvas.current?.dataset.active === "true"
+        ? styledCanvas.current
+        : canvas.current!,
+      0,
+      0,
+    );
     const link = document.createElement("a");
     link.download = "senseai-air-writing.png";
     link.href = output.toDataURL("image/png");
@@ -411,8 +440,8 @@ export default function AirWriting() {
         </Link>
       </nav>
       <header>
-        <div className="eyebrow">YOUR HAND IS THE PEN</div>
-        <h1>Write in the air.</h1>
+        <div className="eyebrow">GESTURE STUDIO</div>
+        <h1>Create beyond the keyboard.</h1>
         <p>
           Move your index fingertip. Pinch your thumb and index finger together
           to draw; release to move without ink.
@@ -435,6 +464,7 @@ export default function AirWriting() {
           >
             {(
               [
+                "writing",
                 "fire",
                 "energy",
                 "portal",
@@ -454,22 +484,26 @@ export default function AirWriting() {
                   elements.current?.reset();
                   livingHeld.current = null;
                   smoothPen.current.reset();
+                  penDownRef.current = false;
+                  setPenDown(false);
                   effectRef.current = mode;
                   setEffect(mode);
                   if (cursor.current) cursor.current.style.display = "none";
                 }}
               >
-                {mode === "fire"
-                  ? "Writing + fire"
-                  : mode === "energy"
-                    ? "Two-hand energy"
-                    : mode === "portal"
-                      ? "Portal drawing"
-                      : mode === "lightning"
-                        ? "Lightning"
-                        : mode === "ice"
-                          ? "Freeze + shatter"
-                          : "Living drawings"}
+                {mode === "writing"
+                  ? "Writing"
+                  : mode === "fire"
+                    ? "Writing + fire"
+                    : mode === "energy"
+                      ? "Two-hand energy"
+                      : mode === "portal"
+                        ? "Portal drawing"
+                        : mode === "lightning"
+                          ? "Lightning"
+                          : mode === "ice"
+                            ? "Freeze + shatter"
+                            : "Living drawings"}
               </button>
             ))}
           </div>
@@ -521,6 +555,13 @@ export default function AirWriting() {
             <canvas
               ref={tipCanvas}
               className="ink-tip"
+              width={1920}
+              height={1080}
+              aria-hidden="true"
+            />
+            <canvas
+              ref={styledCanvas}
+              className="styled-text-canvas"
               width={1920}
               height={1080}
               aria-hidden="true"
@@ -606,7 +647,7 @@ export default function AirWriting() {
           )}
         </section>
         <aside className="panel air-tools">
-          <h2>Make your mark</h2>
+          <h2>Creative controls</h2>
           <label>
             Ink color
             <input
@@ -694,9 +735,15 @@ export default function AirWriting() {
             </button>
             <button
               className="button"
-              disabled={!count}
+              disabled={!count && !styledActive}
               onClick={() => {
                 endStroke();
+                const styled = styledCanvas.current!;
+                styled
+                  .getContext("2d")!
+                  .clearRect(0, 0, styled.width, styled.height);
+                styled.dataset.active = "false";
+                setStyledActive(false);
                 strokes.current = [];
                 redoStrokes.current = [];
                 setRedoCount(0);
@@ -707,7 +754,11 @@ export default function AirWriting() {
               <Trash2 size={16} />
               Clear canvas
             </button>
-            <button className="button primary" disabled={!count} onClick={save}>
+            <button
+              className="button primary"
+              disabled={!count && !styledActive}
+              onClick={save}
+            >
               <Download size={16} />
               Save writing as PNG
             </button>
@@ -731,7 +782,55 @@ export default function AirWriting() {
             />{" "}
             Mouse / touch drawing
           </label>
-          {["lightning", "ice", "living"].includes(effect) ? (
+          <div className="pen-control">
+            <label>
+              <input
+                type="checkbox"
+                checked={continuous}
+                onChange={(e) => {
+                  endStroke();
+                  continuousRef.current = e.target.checked;
+                  setContinuous(e.target.checked);
+                  penDownRef.current = false;
+                  setPenDown(false);
+                  smoothPen.current.reset();
+                }}
+              />{" "}
+              Continuous pen control
+            </label>
+            <p className="air-note">
+              For uninterrupted lettering, control the pen with this button
+              instead of holding a pinch. Tracking loss still pauses ink.
+            </p>
+            {continuous && (
+              <button
+                className="button"
+                disabled={manual || paused}
+                aria-pressed={penDown}
+                onClick={() => {
+                  endStroke();
+                  penDownRef.current = !penDownRef.current;
+                  setPenDown(penDownRef.current);
+                  smoothPen.current.reset();
+                }}
+              >
+                {penDown ? "Lift pen" : "Put pen down"}
+              </button>
+            )}
+          </div>
+          <TextPanel
+            inkRef={canvas}
+            outputRef={styledCanvas}
+            finish={endStroke}
+            hasInk={count > 0}
+            onStyledChange={setStyledActive}
+          />
+          {effect === "writing" ? (
+            <p className="air-note">
+              Writing mode keeps gesture effects inactive so you can focus on
+              lettering. Choose an effect above when ready to present it.
+            </p>
+          ) : ["lightning", "ice", "living"].includes(effect) ? (
             <>
               <h3>
                 {effect === "lightning"
@@ -835,6 +934,7 @@ export default function AirWriting() {
             ink={canvas}
             layers={[
               tipCanvas,
+              styledCanvas,
               fireCanvas,
               magicCanvas,
               elementCanvas,
@@ -849,8 +949,8 @@ export default function AirWriting() {
             <li>Release the pinch between letters or strokes.</li>
           </ol>
           <p className="air-note">
-            This draws your handwriting as ink. It does not convert gestures
-            into typed text or recognize sign language.
+            Writing creates ink. Use Recognize handwriting to convert it to
+            editable text. Sign language recognition is not supported.
           </p>
           <p className="air-note">
             Processing stays in your browser. PNG saves only your writing. Video

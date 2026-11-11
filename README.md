@@ -71,3 +71,13 @@ Air writing now uses a time-aware adaptive pen filter: small hand jitter gets mo
 ### Continuous strokes and tracking recovery
 
 The pen now freezes at its last position for at most 90 ms during a brief tracking dropout. It resumes the same stroke only if the hand returns close to the previous position. Longer loss, large jumps and distant returns lift the pen, avoiding connecting lines. Borderline pinch-release flicker is held for at most 45 ms without drawing new ink; a clear opening or substantial movement ends the stroke. Active ink is rendered as one continuous path and committed once on lift, avoiding seams from overlapping short segments. Original writing and effects remain separate. These safeguards are tested with synthetic tracking sequences; physical webcam behavior still requires real-device verification.
+
+### Writing, gesture presentation and typography
+
+The studio now opens in **Writing** mode, keeping spell gestures inactive while you write. All previous effects remain available in the interaction selector. The workspace uses a more restrained palette; plasma has fewer wireframe rings, a directional highlight and optical streak, while the portal has a darker vanishing point.
+
+For steadier lettering without maintaining a pinch, enable **Continuous pen control**, then choose **Put pen down**. Move your index fingertip to write; use **Lift pen** between strokes. This deliberately ignores pinch changes while enabled. Tracking-loss/jump safeguards remain active. Stop and switching interaction modes lift the pen. Mouse/touch drawing remains available.
+
+Choose **Recognize handwriting** after writing clear English block letters. The app isolates the ink, crops whitespace and prepares black-on-white OCR input, then runs Tesseract locally. Review the editable result and confidence before applying **Editorial serif**, **Signature script**, or **Modern sans**. Cursive and irregular handwriting may require substantial correction; this is not a specialized handwriting model or sign-language recognition. Initial model downloads require a connection. Cancellation and download errors preserve ink and allow manual correction.
+
+Styled typography appears on the canvas and is included in PNG/video export. **Show original ink** restores the retained drawing; drawing again also clears the styled overlay. Text can be typed directly and exported. Fonts use local serif, cursive and sans-serif fallbacks, so their appearance can vary by device. Recognition/style results are not uploaded.

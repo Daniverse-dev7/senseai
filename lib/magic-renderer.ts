@@ -148,7 +148,26 @@ export class MagicRenderer {
       c.stroke();
     }
     c.shadowBlur = 0;
-    for (let j = 0; j < 5; j++) {
+    // A narrow optical streak and off-center highlight replace the wireframe look.
+    const streak = c.createLinearGradient(-r * 2.4, 0, r * 2.4, 0);
+    streak.addColorStop(0, "#79cfff00");
+    streak.addColorStop(0.5, "#d8f6ff90");
+    streak.addColorStop(1, "#79cfff00");
+    c.fillStyle = streak;
+    c.fillRect(-r * 2.4, -1, r * 4.8, 2);
+    const highlight = c.createRadialGradient(
+      -r * 0.3,
+      -r * 0.35,
+      0,
+      -r * 0.3,
+      -r * 0.35,
+      r * 0.55,
+    );
+    highlight.addColorStop(0, "#efffff99");
+    highlight.addColorStop(1, "#7cbaff00");
+    c.fillStyle = highlight;
+    c.fillRect(-r, -r, r * 2, r * 2);
+    for (let j = 0; j < 2; j++) {
       c.save();
       c.rotate(t * 0.35 + (j * Math.PI) / 5);
       c.strokeStyle = j % 2 ? "#b78cff" : "#65f5ff";
@@ -160,7 +179,7 @@ export class MagicRenderer {
       c.stroke();
       c.restore();
     }
-    for (let j = 0; j < 7; j++) {
+    for (let j = 0; j < 3; j++) {
       c.beginPath();
       for (let i = 0; i <= 48; i++) {
         const a = (i / 48) * Math.PI * 2,
@@ -265,6 +284,12 @@ export class MagicRenderer {
       );
       c.fill();
     }
+    const depth = c.createRadialGradient(0.12, -0.1, 0, 0.12, -0.1, 0.65);
+    depth.addColorStop(0, "#02030eee");
+    depth.addColorStop(0.3, "#050817aa");
+    depth.addColorStop(1, "#090d1900");
+    c.fillStyle = depth;
+    c.fillRect(-1, -1, 2, 2);
     c.restore();
     c.globalCompositeOperation = "lighter";
     for (let j = 0; j < 4; j++) {

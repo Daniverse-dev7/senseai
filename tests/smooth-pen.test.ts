@@ -85,3 +85,12 @@ test("movement during ambiguous release cannot reconnect across letters", () => 
   f.update(hand(0.51, 0.19), 33);
   assert.equal(f.update(hand(0.6), 66)?.down, false);
 });
+
+test("continuous pen override ignores pinch changes but explicit lift and loss remain safe", () => {
+  const f = new SmoothPen();
+  assert.equal(f.update(hand(0.5, 0.25), 0, 0.6, true)?.down, true);
+  assert.equal(f.update(hand(0.51, 0.05), 33, 0.6, true)?.down, true);
+  assert.equal(f.update(hand(0.52, 0.19), 66, 0.6, true)?.down, true);
+  assert.equal(f.update(hand(0.52, 0.04), 99, 0.6, false)?.down, false);
+  assert.equal(f.update(undefined, 132, 0.6, true), null);
+});
