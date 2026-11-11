@@ -1,5 +1,7 @@
 # Next steps
 
+Current: approve publication of the tested local commits to main, then verify the Vercel deployment and complete docs/DEMO_CHECKLIST.md on a physical webcam. Latest audit: 40 unit tests and 32 browser tests passed; production build passed. Previous deployment guidance below is historical.
+
 Latest: Writing mode is the default; all gesture effects remain available. Try Continuous pen control for pinch-independent lettering, then recognize clear English handwriting, review the result and apply a text style. Verify freehand OCR accuracy and camera continuity on physical devices; automated OCR testing uses controlled printed glyphs.
 
 Latest continuity fix: bounded tracking-dropout recovery, borderline-pinch debounce, forced lifts after distant returns, and one continuous active ink path. Test whether the reported unexpected breaks/connections are resolved on the user’s real webcam.

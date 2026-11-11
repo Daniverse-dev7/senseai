@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -21,6 +27,8 @@ import { connects, type Pen, type Point } from "../../lib/air-writing";
 import TextPanel from "./text-panel";
 import RecordingPanel from "./recording-panel";
 import { SceneRecorder } from "../../lib/scene-recorder";
+import { WritingHand } from "../../lib/writing-hand";
+import { loadHandTracker } from "../../lib/hand-tracker";
 import { SmoothPen } from "../../lib/smooth-pen";
 import { ElementRenderer } from "../../lib/element-renderer";
 import { openPalm } from "../../lib/air-writing";
@@ -38,6 +46,9 @@ export default function AirWriting() {
     penDownRef = useRef(false);
   const [continuous, setContinuous] = useState(false),
     [penDown, setPenDown] = useState(false);
+  const activePointer = useRef<number | null>(null);
+  const writingHand = useRef(new WritingHand());
+  const modelAbort = useRef<AbortController | null>(null);
   const smoothPen = useRef(new SmoothPen());
   const tipCanvas = useRef<HTMLCanvasElement>(null);
   const elements = useRef<ElementRenderer | null>(null);
@@ -114,6 +125,8 @@ export default function AirWriting() {
   function release() {
     penDownRef.current = false;
     setPenDown(false);
+    modelAbort.current?.abort();
+    writingHand.current.reset();
     recorder.current?.stop();
     smoothPen.current.reset();
     epoch.current++;
@@ -131,6 +144,61 @@ export default function AirWriting() {
     smoothPen.current.reset();
     endStroke();
   }
+  function liftPen() {
+    penDownRef.current = false;
+    setPenDown(false);
+    pointerDown.current = false;
+    activePointer.current = null;
+    smoothPen.current.reset();
+    writingHand.current.reset();
+    endStroke();
+  }
+  const suspendInput = useEffectEvent(() => {
+    liftPen();
+    pausedRef.current = true;
+    setPaused(true);
+    fire.current?.reset();
+    magic.current?.reset();
+    elements.current?.reset();
+    setStatus("Drawing paused · select Resume drawing to continue");
+  });
+  const toggleContinuous = useEffectEvent(() => {
+    if (!continuousRef.current || manualRef.current || pausedRef.current)
+      return;
+    endStroke();
+    penDownRef.current = !penDownRef.current;
+    setPenDown(penDownRef.current);
+    smoothPen.current.reset();
+  });
+  useEffect(() => {
+    const hidden = () => {
+      if (document.hidden) suspendInput();
+    };
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        suspendInput();
+        return;
+      }
+      const target = event.target as HTMLElement;
+      if (
+        event.code === "Space" &&
+        continuousRef.current &&
+        !manualRef.current &&
+        !pausedRef.current &&
+        !event.repeat &&
+        !target.closest("input,textarea,select,button,a,[contenteditable=true]")
+      ) {
+        event.preventDefault();
+        toggleContinuous();
+      }
+    };
+    document.addEventListener("visibilitychange", hidden);
+    document.addEventListener("keydown", keyboard);
+    return () => {
+      document.removeEventListener("visibilitychange", hidden);
+      document.removeEventListener("keydown", keyboard);
+    };
+  }, []);
   useEffect(() => {
     const lifecycle = epoch;
     const renderer = new FireRenderer(fireCanvas.current!, screenFire.current!);
@@ -143,6 +211,7 @@ export default function AirWriting() {
       renderer.destroy();
       magicRenderer.destroy();
       elementRenderer.destroy();
+      modelAbort.current?.abort();
       lifecycle.current++;
       cancelAnimationFrame(frame.current);
       media.current?.getTracks().forEach((t) => t.stop());
@@ -175,7 +244,11 @@ export default function AirWriting() {
       previous.current = next;
       return;
     }
-    if (!current.current || !connects(previousPoint, next)) {
+    if (
+      !current.current ||
+      !previousPoint?.down ||
+      (!manualRef.current && !connects(previousPoint, next))
+    ) {
       endStroke();
       redoStrokes.current = [];
       setRedoCount(0);
@@ -198,6 +271,11 @@ export default function AirWriting() {
   }
   async function start() {
     if (loading || running) return;
+    liftPen();
+    manualRef.current = false;
+    setManual(false);
+    pausedRef.current = false;
+    setPaused(false);
     const id = ++epoch.current;
     setLoading(true);
     setError("");
@@ -219,6 +297,20 @@ export default function AirWriting() {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
+      stream.getVideoTracks().forEach((track) =>
+        track.addEventListener(
+          "ended",
+          () => {
+            if (id === epoch.current) {
+              stop();
+              setError(
+                "Camera disconnected. Reconnect it and start hand tracking again.",
+              );
+            }
+          },
+          { once: true },
+        ),
+      );
       media.current = stream;
       video.current!.srcObject = stream;
       await video.current!.play();
@@ -235,24 +327,15 @@ export default function AirWriting() {
       }
       phase = "model";
       setStatus("Loading hand tracking · first download may take a moment…");
-      const { FilesetResolver, HandLandmarker } =
-        await import("@mediapipe/tasks-vision");
-      const files = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm",
-      );
-      if (id !== epoch.current) return;
-      const hand = await HandLandmarker.createFromOptions(files, {
-        baseOptions: {
-          modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-          delegate: "CPU",
-        },
-        runningMode: "VIDEO",
-        numHands: 2,
-        minHandDetectionConfidence: 0.6,
-        minHandPresenceConfidence: 0.6,
-        minTrackingConfidence: 0.6,
-      });
+      const controller = new AbortController();
+      modelAbort.current = controller;
+      const timeout = setTimeout(() => controller.abort(), 35000);
+      let hand: HandLandmarker;
+      try {
+        hand = await loadHandTracker(controller.signal);
+      } finally {
+        clearTimeout(timeout);
+      }
       if (id !== epoch.current) {
         hand.close();
         return;
@@ -268,6 +351,8 @@ export default function AirWriting() {
         if (id !== epoch.current) return;
         try {
           if (
+            !pausedRef.current &&
+            !manualRef.current &&
             video.current &&
             video.current.readyState >= 2 &&
             time - lastFrame >= 32 &&
@@ -277,7 +362,7 @@ export default function AirWriting() {
             lastTime = video.current.currentTime;
             const result = hand.detectForVideo(video.current, time);
             const pen = smoothPen.current.update(
-              result.landmarks.length === 1 ? result.landmarks[0] : undefined,
+              writingHand.current.select(result.landmarks, time),
               time,
               stabilizationRef.current,
               continuousRef.current ? penDownRef.current : undefined,
@@ -384,6 +469,20 @@ export default function AirWriting() {
       if (id === epoch.current) setLoading(false);
     }
   }
+  function showInk() {
+    const c = styledCanvas.current;
+    if (c?.dataset.active === "true") {
+      c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
+      c.dataset.active = "false";
+      setStyledActive(false);
+    }
+  }
+  function prepareText() {
+    liftPen();
+    pausedRef.current = true;
+    setPaused(true);
+    setStatus("Drawing paused for text review · resume when ready");
+  }
   function redraw() {
     const ctx = canvas.current?.getContext("2d");
     if (ctx)
@@ -417,6 +516,8 @@ export default function AirWriting() {
         : canvas.current!,
       0,
       0,
+      output.width,
+      output.height,
     );
     const link = document.createElement("a");
     link.download = "senseai-air-writing.png";
@@ -529,25 +630,48 @@ export default function AirWriting() {
               aria-label="Air writing drawing canvas"
               className={manual ? "manual-canvas" : ""}
               onPointerDown={(e) => {
-                if (!manual || paused) return;
+                if (
+                  !manual ||
+                  paused ||
+                  !e.isPrimary ||
+                  activePointer.current !== null
+                )
+                  return;
+                activePointer.current = e.pointerId;
                 e.currentTarget.setPointerCapture(e.pointerId);
                 pointerDown.current = true;
                 endStroke();
                 draw(point(e));
               }}
               onPointerMove={(e) => {
-                if (manual && pointerDown.current && !paused) {
+                if (
+                  manual &&
+                  pointerDown.current &&
+                  !paused &&
+                  activePointer.current === e.pointerId
+                ) {
                   const samples = e.nativeEvent.getCoalescedEvents?.() || [];
                   for (const sample of samples) draw(point(e, sample));
                   draw(point(e));
                 }
               }}
               onPointerUp={(e) => {
+                if (activePointer.current !== e.pointerId) return;
+                activePointer.current = null;
                 if (manual && pointerDown.current && !paused) draw(point(e));
                 pointerDown.current = false;
                 endStroke();
               }}
-              onPointerCancel={() => {
+              onLostPointerCapture={(e) => {
+                if (activePointer.current === e.pointerId) {
+                  activePointer.current = null;
+                  pointerDown.current = false;
+                  endStroke();
+                }
+              }}
+              onPointerCancel={(e) => {
+                if (activePointer.current !== e.pointerId) return;
+                activePointer.current = null;
                 pointerDown.current = false;
                 endStroke();
               }}
@@ -619,6 +743,21 @@ export default function AirWriting() {
               <Square size={15} />
               Stop
             </button>
+            {continuous && !manual && (
+              <button
+                className="button"
+                disabled={paused}
+                aria-pressed={penDown}
+                onClick={() => {
+                  endStroke();
+                  penDownRef.current = !penDownRef.current;
+                  setPenDown(penDownRef.current);
+                  smoothPen.current.reset();
+                }}
+              >
+                {penDown ? "Lift pen" : "Put pen down"}
+              </button>
+            )}
             <button
               className="button"
               aria-pressed={paused}
@@ -629,6 +768,12 @@ export default function AirWriting() {
                 livingHeld.current = null;
                 smoothPen.current.reset();
                 pausedRef.current = !paused;
+                liftPen();
+                setStatus(
+                  !paused
+                    ? "Drawing paused · select Resume drawing to continue"
+                    : "Drawing resumed · show your writing hand",
+                );
                 setPaused(!paused);
                 endStroke();
               }}
@@ -708,6 +853,7 @@ export default function AirWriting() {
               disabled={!count}
               onClick={() => {
                 endStroke();
+                showInk();
                 const removed = strokes.current.pop();
                 if (removed) redoStrokes.current.push(removed);
                 setRedoCount(redoStrokes.current.length);
@@ -723,6 +869,7 @@ export default function AirWriting() {
               disabled={!redoCount}
               onClick={() => {
                 endStroke();
+                showInk();
                 const restored = redoStrokes.current.pop();
                 if (restored) strokes.current.push(restored);
                 setRedoCount(redoStrokes.current.length);
@@ -773,6 +920,14 @@ export default function AirWriting() {
                 elements.current?.reset();
                 livingHeld.current = null;
                 smoothPen.current.reset();
+                liftPen();
+                pausedRef.current = false;
+                setPaused(false);
+                setStatus(
+                  e.target.checked
+                    ? "Mouse / touch mode · drag on the canvas to write"
+                    : "Show your hand to write",
+                );
                 manualRef.current = e.target.checked;
                 setManual(e.target.checked);
                 endStroke();
@@ -802,26 +957,15 @@ export default function AirWriting() {
               For uninterrupted lettering, control the pen with this button
               instead of holding a pinch. Tracking loss still pauses ink.
             </p>
-            {continuous && (
-              <button
-                className="button"
-                disabled={manual || paused}
-                aria-pressed={penDown}
-                onClick={() => {
-                  endStroke();
-                  penDownRef.current = !penDownRef.current;
-                  setPenDown(penDownRef.current);
-                  smoothPen.current.reset();
-                }}
-              >
-                {penDown ? "Lift pen" : "Put pen down"}
-              </button>
-            )}
+            <p className="air-note">
+              Use the pen button beside the canvas, or Space when a form field
+              is not focused. Escape pauses drawing.
+            </p>
           </div>
           <TextPanel
             inkRef={canvas}
             outputRef={styledCanvas}
-            finish={endStroke}
+            finish={prepareText}
             hasInk={count > 0}
             onStyledChange={setStyledActive}
           />

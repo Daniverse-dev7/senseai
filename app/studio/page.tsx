@@ -134,6 +134,7 @@ export default function Studio() {
       stream.current = media;
       video.current!.srcObject = media;
       await video.current!.play();
+      if (id !== generation.current || !mounted.current) return;
       setDimensions({
         width: video.current!.videoWidth,
         height: video.current!.videoHeight,
@@ -146,7 +147,7 @@ export default function Studio() {
         await tf.ready();
         const coco = await import("@tensorflow-models/coco-ssd");
         const loaded = await coco.load({ base: "lite_mobilenet_v2" });
-        if (!mounted.current) {
+        if (id !== generation.current || !mounted.current) {
           loaded.dispose();
           return;
         }

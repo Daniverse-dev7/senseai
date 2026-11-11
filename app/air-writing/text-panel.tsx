@@ -132,7 +132,8 @@ export default function TextPanel({
       <h3>Turn handwriting into typography</h3>
       <p className="air-note">
         Best with clear block letters. Cursive may need corrections. Your
-        original ink is preserved.
+        original ink is preserved. Drawing pauses during text review; resume
+        when ready.
       </p>
       <button className="button" disabled={busy || !hasInk} onClick={recognize}>
         {busy ? "Recognizing…" : "Recognize handwriting"}
@@ -150,6 +151,7 @@ export default function TextPanel({
         <textarea
           aria-label="Recognized text"
           value={text}
+          disabled={busy}
           maxLength={160}
           rows={3}
           placeholder="Recognized text appears here. You can also type or correct it."
