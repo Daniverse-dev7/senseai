@@ -106,3 +106,10 @@ Hand tracking now has a cancellable 35-second loading deadline, GPU initializati
 Validation: 40 unit tests passed; all 32 production-browser tests passed (test-results/.last-run.json records passed). Lint, TypeScript, production build and diff whitespace checks passed. Browser coverage includes actual controlled printed-glyph OCR, rendering, export and recording; camera failure tests use controlled fixtures. Physical webcam handwriting, freehand OCR accuracy and GPU/CPU inference on actual hardware remain unverified. No guarantee of flawless tracking is made.
 
 Publication pending: local changes include the previous typography checkpoint and this audit. Automatic approval review previously rejected pushing to main because that triggers production deployment and requires explicit approval. No remote publication was attempted during this audit.
+
+
+## Dani identity — 11 November 2026
+
+Added the user-selected electric-blue D with small white ani on navy as the site icon. Next.js file conventions provide a multi-resolution RGBA favicon (16/32/48/256), a 512px PNG icon and a 180px Apple touch icon across all routes. The wordmark is preserved; at tiny tab sizes its D is most recognizable.
+
+Validation: 40 unit tests, lint, TypeScript and production build passed. Chromium verified icon metadata and successful image responses on /, /studio and /air-writing. No application behavior changed. The prior reliability checkpoint 106307f was pushed to main/work after user approval; public Vercel verification remains blocked by the cloud network policy.

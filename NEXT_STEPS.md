@@ -1,6 +1,6 @@
 # Next steps
 
-Current: approve publication of the tested local commits to main, then verify the Vercel deployment and complete docs/DEMO_CHECKLIST.md on a physical webcam. Latest audit: 40 unit tests and 32 browser tests passed; production build passed. Previous deployment guidance below is historical.
+Current: reliability fixes were published to main/work at 106307f. The selected Dani icon is implemented and locally verified; check its Vercel rollout, reopen the browser tab if the old icon is cached, and complete docs/DEMO_CHECKLIST.md on a physical webcam. Latest audit: 40 unit tests and 32 browser tests passed; production build passed. Previous deployment guidance below is historical.
 
 Latest: Writing mode is the default; all gesture effects remain available. Try Continuous pen control for pinch-independent lettering, then recognize clear English handwriting, review the result and apply a text style. Verify freehand OCR accuracy and camera continuity on physical devices; automated OCR testing uses controlled printed glyphs.
 
